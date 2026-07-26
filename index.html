@@ -18,15 +18,24 @@
 
 const { useState, useEffect } = React;
 
-// ---- localStorage-backed replacement for the artifact-only window.storage API ----
+// ---- API-backed replacement for the artifact-only window.storage API ----
+// Backed by /api/state (Postgres via the Express server), so the same data
+// is visible from the phone, the browser, and Claude reading the API directly.
 const storage = {
   async get(key) {
-    const v = localStorage.getItem(key);
-    if (v === null) throw new Error('not found');
-    return { key, value: v };
+    const res = await fetch('/api/state');
+    if (!res.ok) throw new Error('failed to fetch state');
+    const data = await res.json();
+    if (data.value === null || data.value === undefined) throw new Error('not found');
+    return { key, value: JSON.stringify(data.value) };
   },
   async set(key, value) {
-    localStorage.setItem(key, value);
+    const res = await fetch('/api/state', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: JSON.parse(value) }),
+    });
+    if (!res.ok) throw new Error('failed to save state');
     return { key, value };
   }
 };
@@ -340,6 +349,47 @@ function SessionSummary({ day, exData, loggedIds, onDone }) {
   );
 }
 
+function CoachFeedback() {
+  const [items, setItems] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/feedback?unread=true');
+        if (res.ok) setItems(await res.json());
+      } catch {}
+      setLoaded(true);
+    })();
+  }, []);
+
+  const dismiss = async (id) => {
+    setItems(prev => prev.filter(i => i.id !== id));
+    try { await fetch(`/api/feedback/${id}/read`, { method: 'PATCH' }); } catch {}
+  };
+
+  if (!loaded || items.length === 0) return null;
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      {items.map(item => (
+        <div key={item.id} style={{ border: '1px solid #1e3a8a', background: 'rgba(30,58,138,0.2)', borderRadius: 10, padding: '10px 12px', marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: '#93c5fd', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Coach note{item.exercise_id && EXERCISES[item.exercise_id] ? ` — ${EXERCISES[item.exercise_id].name}` : ''}
+          </div>
+          <div style={{ fontSize: 13, color: '#dbeafe', whiteSpace: 'pre-wrap' }}>{item.message}</div>
+          <button
+            onClick={() => dismiss(item.id)}
+            style={{ marginTop: 8, fontSize: 12, color: '#93c5fd', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          >
+            Dismiss
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function TrainingLog() {
   const [day, setDay] = useState('1');
   const [exData, setExData] = useState(null);
@@ -421,6 +471,8 @@ function TrainingLog() {
         <span style={{ fontSize: 22 }}>🏋️</span>
         <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Training Log</h1>
       </div>
+
+      <CoachFeedback />
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
         {Object.keys(DAYS).map(d => (
