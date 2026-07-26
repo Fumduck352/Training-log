@@ -128,7 +128,7 @@ function CopySummaryButton({ text, label }) {
   );
 }
 
-function ExerciseCard({ id, ex, data, onLog, onNoteChange }) {
+function ExerciseCard({ id, ex, data, onLog, onNoteChange, skipped, onSkip }) {
   const [open, setOpen] = useState(false);
   const [sets, setSets] = useState(Array.from({ length: ex.sets }, () => ({ reps: ex.repMax || '', effort: 7 })));
   const [logged, setLogged] = useState(false);
@@ -181,9 +181,12 @@ function ExerciseCard({ id, ex, data, onLog, onNoteChange }) {
       >
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: logged ? '#86efac' : '#f5f5f4' }}>
-              {logged ? '✓ ' : ''}{ex.name}
+            <span style={{ fontSize: 14, fontWeight: 600, color: skipped ? '#57534e' : logged ? '#86efac' : '#f5f5f4' }}>
+              {skipped ? '⊘ ' : logged ? '✓ ' : ''}{ex.name}
             </span>
+            {skipped && (
+              <span style={{ fontSize: 11, color: '#57534e' }}>skipped today</span>
+            )}
             {ex.caution && (
               <span style={{ fontSize: 11, background: '#431407', color: '#fb923c', padding: '1px 6px', borderRadius: 4, border: '1px solid #7c2d12', flexShrink: 0 }}>
                 ⚠ elbow
@@ -202,7 +205,21 @@ function ExerciseCard({ id, ex, data, onLog, onNoteChange }) {
         <span style={{ color: '#78716c', fontSize: 16, marginLeft: 8, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
       </button>
 
-      {open && (
+      {open && skipped && (
+        <div style={{ borderTop: '1px solid #292524', padding: '12px 14px' }}>
+          <div style={{ fontSize: 13, color: '#78716c', marginBottom: 10 }}>
+            Marked as skipped for today — won't affect your weight or history.
+          </div>
+          <button
+            onClick={() => onSkip(id)}
+            style={{ width: '100%', padding: 10, borderRadius: 8, background: '#27272a', border: '1px solid #3f3f46', color: '#e4e4e7', fontSize: 13, cursor: 'pointer' }}
+          >
+            Undo — I did do this today
+          </button>
+        </div>
+      )}
+
+      {open && !skipped && (
         <div style={{ borderTop: '1px solid #292524', padding: '12px 14px' }}>
           {ex.note && (
             <div style={{ fontSize: 12, color: '#fbbf24', background: 'rgba(120,53,15,0.3)', border: '1px solid rgba(161,98,7,0.4)', borderRadius: 8, padding: '7px 10px', marginBottom: 10 }}>
@@ -240,6 +257,15 @@ function ExerciseCard({ id, ex, data, onLog, onNoteChange }) {
           >
             {logged ? 'Re-log session' : 'Log session'}
           </button>
+
+          {!logged && (
+            <button
+              onClick={() => onSkip(id)}
+              style={{ width: '100%', padding: 6, background: 'none', border: 'none', color: '#57534e', fontSize: 12, cursor: 'pointer', marginTop: 6 }}
+            >
+              Didn't do this today
+            </button>
+          )}
 
           {suggestion && (
             <div style={{
@@ -295,7 +321,7 @@ function ExerciseCard({ id, ex, data, onLog, onNoteChange }) {
   );
 }
 
-function SessionSummary({ day, exData, loggedIds, onDone }) {
+function SessionSummary({ day, exData, loggedIds, skippedIds, onDone }) {
   const increases = loggedIds.map(id => {
     const hist = exData[id].history;
     if (hist.length < 2) return null;
@@ -324,7 +350,10 @@ function SessionSummary({ day, exData, loggedIds, onDone }) {
     <div style={{ margin: '16px 0', border: '1px solid #3f3f46', borderRadius: 14, background: '#18181b', overflow: 'hidden' }}>
       <div style={{ padding: '14px 16px', borderBottom: '1px solid #27272a' }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#f4f4f5' }}>Session complete 🎉</div>
-        <div style={{ fontSize: 13, color: '#71717a', marginTop: 2 }}>Day {day} · {loggedIds.length} exercises logged</div>
+        <div style={{ fontSize: 13, color: '#71717a', marginTop: 2 }}>
+          Day {day} · {loggedIds.length} exercises logged
+          {skippedIds.length > 0 && ` · ${skippedIds.length} skipped`}
+        </div>
       </div>
 
       {increases.length > 0 && (
@@ -395,6 +424,7 @@ function TrainingLog() {
   const [exData, setExData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loggedIds, setLoggedIds] = useState([]);
+  const [skippedIds, setSkippedIds] = useState([]);
   const [sessionDone, setSessionDone] = useState(false);
 
   useEffect(() => {
@@ -411,7 +441,7 @@ function TrainingLog() {
     })();
   }, []);
 
-  useEffect(() => { setLoggedIds([]); setSessionDone(false); }, [day]);
+  useEffect(() => { setLoggedIds([]); setSkippedIds([]); setSessionDone(false); }, [day]);
 
   const persist = async (next) => {
     setExData(next);
@@ -449,15 +479,20 @@ function TrainingLog() {
     persist({ ...exData, [id]: cur });
   };
 
+  const handleSkip = (id) => {
+    setSkippedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
   const handleReset = async () => {
     if (!window.confirm('Reset all progress back to starting weights?')) return;
     const d = buildDefaultState();
     await persist(d);
     setLoggedIds([]);
+    setSkippedIds([]);
     setSessionDone(false);
   };
 
-  const allLogged = exData && DAYS[day].every(id => loggedIds.includes(id));
+  const allLogged = exData && DAYS[day].every(id => loggedIds.includes(id) || skippedIds.includes(id));
 
   if (loading) return (
     <div style={{ minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0c0a09', color: '#78716c', fontFamily: 'system-ui' }}>
@@ -494,7 +529,7 @@ function TrainingLog() {
           <div style={{ fontSize: 18, fontWeight: 700, color: '#86efac', marginBottom: 6 }}>Session saved!</div>
           <div style={{ fontSize: 14, color: '#78716c', marginBottom: 20 }}>All weights and notes updated for next time.</div>
           <button
-            onClick={() => { setSessionDone(false); setLoggedIds([]); }}
+            onClick={() => { setSessionDone(false); setLoggedIds([]); setSkippedIds([]); }}
             style={{ padding: '10px 24px', borderRadius: 8, background: '#1c1917', border: '1px solid #292524', color: '#f5f5f4', fontSize: 14, cursor: 'pointer' }}
           >
             Start another session
@@ -507,13 +542,14 @@ function TrainingLog() {
               key={`${day}-${id}-${idx}`}
               id={id} ex={EXERCISES[id]} data={exData[id]}
               onLog={handleLog} onNoteChange={handleNoteChange}
+              skipped={skippedIds.includes(id)} onSkip={handleSkip}
             />
           ))}
 
-          {loggedIds.length > 0 && !allLogged && (
+          {(loggedIds.length > 0 || skippedIds.length > 0) && !allLogged && (
             <>
               <div style={{ textAlign: 'center', fontSize: 13, color: '#57534e', padding: '10px 0' }}>
-                {loggedIds.length} / {DAYS[day].length} exercises logged
+                {loggedIds.length + skippedIds.length} / {DAYS[day].length} exercises done
               </div>
               <button
                 onClick={() => setSessionDone(true)}
@@ -525,7 +561,7 @@ function TrainingLog() {
           )}
 
           {allLogged && (
-            <SessionSummary day={day} exData={exData} loggedIds={loggedIds} onDone={() => setSessionDone(true)} />
+            <SessionSummary day={day} exData={exData} loggedIds={loggedIds} skippedIds={skippedIds} onDone={() => setSessionDone(true)} />
           )}
         </>
       )}
