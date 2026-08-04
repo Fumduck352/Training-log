@@ -61,16 +61,38 @@ const EXERCISES = {
   closeGripBench: { name: 'Close Grip Bench',    sets: 3, repMin: 6,  repMax: 8,  weight: 50,   unit: 'kg',      increment: 2.5, caution: true, note: 'Watch right elbow' },
   preacherCurl:   { name: 'Preacher Curl',       sets: 2, repMin: 12, repMax: 12, weight: 25,   unit: 'kg',      increment: 2.5, caution: true, note: 'Watch right elbow' },
   hammerCurl:     { name: 'Hammer Curl',         sets: 3, repMin: 10, repMax: 10, weight: 12,   unit: 'kg',      increment: 2,   caution: true, note: 'Watch right elbow' },
+  landmineTwist:  { name: 'Landmine Twist',      sets: 3, repMin: 10, repMax: 10, weight: 10,   unit: 'kg',      increment: 2.5, note: 'Reps are per side — start light (empty bar or 5–10kg on the end). First session is a calibration session.' },
+  kettlebellHalo: { name: 'Kettlebell Halo',     sets: 2, repMin: 8,  repMax: 8,  weight: 8,    unit: 'kg',      increment: 2,   note: '8 reps clockwise + 8 reps counter-clockwise per set. First session is a calibration session.' },
+  suitcaseCarry:  { name: 'Suitcase Carry',      sets: 2, repMin: 0,  repMax: 0,  weight: 16,   unit: 'kg',      increment: 2,   noReps: true, note: '~20m or 30–40 sec per side. First session is a calibration session.' },
 };
 
-const DAYS = {
-  '1':  ['inclinePress', 'flatBench', 'shoulderPress', 'cableLateral', 'ropePressdown', 'lowHighFly'],
-  '2':  ['latPulldown', 'singleArmRow', 'ezBarCurl', 'farmersCarry'],
-  '3':  ['legPress', 'rdl', 'walkingLunges', 'seatedLegCurl', 'proneLegCurl', 'calfRaises'],
-  '4':  ['closeGripBench', 'preacherCurl', 'hammerCurl', 'ropePressdown'],
+// Two alternating "phase" weeks. Each week has the same 4 day slots, but
+// different exercise groupings. Weight/history for a given exercise id is
+// shared no matter which week/day it's logged under.
+const WEEKS = {
+  1: {
+    '1': { label: 'Push',        exercises: ['inclinePress', 'flatBench', 'shoulderPress', 'cableLateral', 'ropePressdown', 'lowHighFly'] },
+    '2': { label: 'Pull',        exercises: ['latPulldown', 'singleArmRow', 'ezBarCurl', 'farmersCarry'] },
+    '3': { label: 'Legs',        exercises: ['legPress', 'rdl', 'walkingLunges', 'seatedLegCurl', 'proneLegCurl', 'calfRaises'] },
+    '4': { label: 'Accessory',   exercises: ['closeGripBench', 'preacherCurl', 'hammerCurl', 'ropePressdown'] },
+  },
+  2: {
+    '1': { label: 'Back & Chest',      exercises: ['latPulldown', 'flatBench', 'singleArmRow', 'inclinePress', 'lowHighFly'] },
+    '2': { label: 'Arms & Shoulders',  exercises: ['shoulderPress', 'cableLateral', 'ezBarCurl', 'ropePressdown', 'hammerCurl', 'closeGripBench'] },
+    '3': { label: 'Legs',              exercises: ['legPress', 'rdl', 'walkingLunges', 'seatedLegCurl', 'proneLegCurl', 'calfRaises'] },
+    '4': { label: 'Conditioning',      exercises: ['landmineTwist', 'kettlebellHalo', 'suitcaseCarry'] },
+  },
 };
 
 const STORAGE_KEY = 'lee-training-log-v1';
+
+function defaultCompletedDays() {
+  return { '1': false, '2': false, '3': false, '4': false };
+}
+
+function defaultMeta() {
+  return { week: 1, completedDays: { 1: defaultCompletedDays(), 2: defaultCompletedDays() } };
+}
 
 function buildDefaultState() {
   const s = {};
@@ -82,6 +104,40 @@ function buildDefaultState() {
     };
   });
   return s;
+}
+
+// Patches older saved state: adds any exercise ids that didn't exist yet
+// when it was saved, and ensures __meta (week/completion tracking) exists.
+function normalizeState(loaded) {
+  const s = { ...loaded };
+  Object.entries(EXERCISES).forEach(([id, ex]) => {
+    if (!s[id]) {
+      s[id] = {
+        weight: ex.weight, weightL: ex.weightL, weightR: ex.weightR,
+        history: [],
+        notes: id === 'farmersCarry' ? '40m per set, plus shoulder shrugs after' : ''
+      };
+    }
+  });
+  if (!s.__meta) {
+    s.__meta = defaultMeta();
+  } else {
+    s.__meta = { week: s.__meta.week === 2 ? 2 : 1, completedDays: { ...s.__meta.completedDays } };
+    [1, 2].forEach(w => { if (!s.__meta.completedDays[w]) s.__meta.completedDays[w] = defaultCompletedDays(); });
+  }
+  return s;
+}
+
+// Recomputes whether `dayNum` (in `week`) is fully covered by `coveredIds`
+// (logged + skipped exercise ids), updates completedDays, and auto-flips
+// to the other week once all 4 days in the current week are complete.
+function updateMetaAfterAction(meta, week, dayNum, coveredIds) {
+  const daysForWeek = WEEKS[week];
+  const dayComplete = daysForWeek[dayNum].exercises.every(exId => coveredIds.includes(exId));
+  const completedDays = { ...meta.completedDays, [week]: { ...meta.completedDays[week], [dayNum]: dayComplete } };
+  const allDaysComplete = Object.keys(daysForWeek).every(d => completedDays[week][d]);
+  const nextWeek = allDaysComplete ? (week === 1 ? 2 : 1) : week;
+  return { ...meta, week: nextWeek, completedDays };
 }
 
 function getSuggestion(ex, sets) {
@@ -429,14 +485,15 @@ function TrainingLog() {
 
   useEffect(() => {
     (async () => {
+      let s;
       try {
         const r = await storage.get(STORAGE_KEY);
-        setExData(JSON.parse(r.value));
+        s = normalizeState(JSON.parse(r.value));
       } catch {
-        const d = buildDefaultState();
-        setExData(d);
-        try { await storage.set(STORAGE_KEY, JSON.stringify(d)); } catch {}
+        s = normalizeState(buildDefaultState());
       }
+      setExData(s);
+      try { await storage.set(STORAGE_KEY, JSON.stringify(s)); } catch {}
       setLoading(false);
     })();
   }, []);
@@ -462,8 +519,21 @@ function TrainingLog() {
       next.history.push({ date: new Date().toISOString().slice(0,10), weightLabel: `${newW}${ex.unit}`, sets });
     }
     next.history = next.history.slice(-6);
-    persist({ ...exData, [id]: next });
-    setLoggedIds(prev => prev.includes(id) ? prev : [...prev, id]);
+
+    const week = exData.__meta.week;
+    const nextLoggedIds = loggedIds.includes(id) ? loggedIds : [...loggedIds, id];
+    const nextMeta = updateMetaAfterAction(exData.__meta, week, day, [...nextLoggedIds, ...skippedIds]);
+    const weekChanged = nextMeta.week !== week;
+
+    persist({ ...exData, [id]: next, __meta: nextMeta });
+    if (weekChanged) {
+      setDay('1');
+      setLoggedIds([]);
+      setSkippedIds([]);
+      setSessionDone(false);
+    } else {
+      setLoggedIds(nextLoggedIds);
+    }
   };
 
   const handleNoteChange = (id, updates, changeText, directNote) => {
@@ -480,19 +550,47 @@ function TrainingLog() {
   };
 
   const handleSkip = (id) => {
-    setSkippedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    const nextSkippedIds = skippedIds.includes(id) ? skippedIds.filter(x => x !== id) : [...skippedIds, id];
+
+    const week = exData.__meta.week;
+    const nextMeta = updateMetaAfterAction(exData.__meta, week, day, [...loggedIds, ...nextSkippedIds]);
+    const weekChanged = nextMeta.week !== week;
+
+    persist({ ...exData, __meta: nextMeta });
+    if (weekChanged) {
+      setDay('1');
+      setLoggedIds([]);
+      setSkippedIds([]);
+      setSessionDone(false);
+    } else {
+      setSkippedIds(nextSkippedIds);
+    }
   };
 
   const handleReset = async () => {
     if (!window.confirm('Reset all progress back to starting weights?')) return;
-    const d = buildDefaultState();
+    const d = normalizeState(buildDefaultState());
     await persist(d);
+    setDay('1');
     setLoggedIds([]);
     setSkippedIds([]);
     setSessionDone(false);
   };
 
-  const allLogged = exData && DAYS[day].every(id => loggedIds.includes(id) || skippedIds.includes(id));
+  const handleForceWeekSwitch = () => {
+    const week = exData.__meta.week;
+    const nextWeek = week === 1 ? 2 : 1;
+    if (!window.confirm(`Switch to Week ${nextWeek} now?`)) return;
+    persist({ ...exData, __meta: { ...exData.__meta, week: nextWeek } });
+    setDay('1');
+    setLoggedIds([]);
+    setSkippedIds([]);
+    setSessionDone(false);
+  };
+
+  const week = exData && exData.__meta.week;
+  const daysForWeek = exData && WEEKS[week];
+  const allLogged = exData && daysForWeek[day].exercises.every(id => loggedIds.includes(id) || skippedIds.includes(id));
 
   if (loading) return (
     <div style={{ minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0c0a09', color: '#78716c', fontFamily: 'system-ui' }}>
@@ -502,25 +600,41 @@ function TrainingLog() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0c0a09', color: '#f5f5f4', padding: '16px', maxWidth: 480, margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-        <span style={{ fontSize: 22 }}>🏋️</span>
-        <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Training Log</h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 22 }}>🏋️</span>
+          <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Training Log</h1>
+        </div>
+        <button
+          onClick={handleForceWeekSwitch}
+          style={{ fontSize: 11, color: '#57534e', background: 'none', border: '1px solid #292524', borderRadius: 6, padding: '4px 8px', cursor: 'pointer' }}
+        >
+          Switch to Week {week === 1 ? 2 : 1} →
+        </button>
+      </div>
+      <div style={{ fontSize: 12, color: '#78716c', marginBottom: 16 }}>
+        Week {week} · Day {day} — {daysForWeek[day].label}
       </div>
 
       <CoachFeedback />
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-        {Object.keys(DAYS).map(d => (
-          <button key={d} onClick={() => setDay(d)} style={{
-            flex: 1, padding: '8px 4px', borderRadius: 8,
-            border: '1px solid', borderColor: d === day ? '#c2410c' : '#292524',
-            background: d === day ? '#c2410c' : '#1c1917',
-            color: d === day ? '#fff' : '#78716c',
-            fontSize: 13, fontWeight: 600, cursor: 'pointer'
-          }}>
-            Day {d}
-          </button>
-        ))}
+        {Object.keys(daysForWeek).map(d => {
+          const isSelected = d === day;
+          const isComplete = exData.__meta.completedDays[week][d];
+          const bg = isSelected ? '#c2410c' : isComplete ? '#166534' : '#1c1917';
+          const borderColor = isSelected ? '#c2410c' : isComplete ? '#16a34a' : '#292524';
+          const color = isSelected || isComplete ? '#fff' : '#78716c';
+          return (
+            <button key={d} onClick={() => setDay(d)} style={{
+              flex: 1, padding: '8px 4px', borderRadius: 8,
+              border: '1px solid', borderColor, background: bg, color,
+              fontSize: 13, fontWeight: 600, cursor: 'pointer'
+            }}>
+              Day {d}
+            </button>
+          );
+        })}
       </div>
 
       {sessionDone ? (
@@ -537,9 +651,9 @@ function TrainingLog() {
         </div>
       ) : (
         <>
-          {DAYS[day].map((id, idx) => (
+          {daysForWeek[day].exercises.map((id, idx) => (
             <ExerciseCard
-              key={`${day}-${id}-${idx}`}
+              key={`${week}-${day}-${id}-${idx}`}
               id={id} ex={EXERCISES[id]} data={exData[id]}
               onLog={handleLog} onNoteChange={handleNoteChange}
               skipped={skippedIds.includes(id)} onSkip={handleSkip}
@@ -549,7 +663,7 @@ function TrainingLog() {
           {(loggedIds.length > 0 || skippedIds.length > 0) && !allLogged && (
             <>
               <div style={{ textAlign: 'center', fontSize: 13, color: '#57534e', padding: '10px 0' }}>
-                {loggedIds.length + skippedIds.length} / {DAYS[day].length} exercises done
+                {loggedIds.length + skippedIds.length} / {daysForWeek[day].exercises.length} exercises done
               </div>
               <button
                 onClick={() => setSessionDone(true)}
