@@ -4,7 +4,19 @@ const express = require('express');
 const { Pool } = require('pg');
 
 const PORT = process.env.PORT || 3000;
-const STATE_KEY = 'lee-training-log-v1';
+
+// Fixed roster: Lee's storage_key matches the original single-user key so
+// his existing data carries over with no migration. New real people get
+// assigned to a "spare" slot by renaming it (see PATCH /api/profiles/:id) —
+// there's no public self-signup, Lee issues the names.
+const SEED_PROFILES = [
+  { id: 'lee', name: 'Lee', storageKey: 'lee-training-log-v1' },
+  { id: 'tim', name: 'Tim', storageKey: 'training-log-v1:tim' },
+  { id: 'dan', name: 'Dan', storageKey: 'training-log-v1:dan' },
+  { id: 'spare-1', name: 'Spare 1', storageKey: 'training-log-v1:spare-1' },
+  { id: 'spare-2', name: 'Spare 2', storageKey: 'training-log-v1:spare-2' },
+  { id: 'spare-3', name: 'Spare 3', storageKey: 'training-log-v1:spare-3' },
+];
 
 if (!process.env.DATABASE_URL) {
   console.error('DATABASE_URL is not set. Add your Neon connection string as an env var.');
@@ -34,46 +46,96 @@ async function initDb() {
       read BOOLEAN NOT NULL DEFAULT false
     );
   `);
+  await pool.query(`ALTER TABLE coach_feedback ADD COLUMN IF NOT EXISTS profile_id TEXT;`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS profiles (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      storage_key TEXT NOT NULL UNIQUE,
+      sort_order INTEGER NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  for (let i = 0; i < SEED_PROFILES.length; i++) {
+    const p = SEED_PROFILES[i];
+    await pool.query(
+      `INSERT INTO profiles (id, name, storage_key, sort_order) VALUES ($1, $2, $3, $4)
+       ON CONFLICT (id) DO NOTHING`,
+      [p.id, p.name, p.storageKey, i]
+    );
+  }
+}
+
+async function getStorageKey(profileId) {
+  const result = await pool.query('SELECT storage_key FROM profiles WHERE id = $1', [profileId]);
+  return result.rows[0] ? result.rows[0].storage_key : null;
 }
 
 const app = express();
 app.use(express.json());
 
+// ---- Profiles (fixed roster; Lee assigns spare slots to real people) ----
+
+app.get('/api/profiles', async (req, res) => {
+  const result = await pool.query('SELECT id, name FROM profiles ORDER BY sort_order ASC');
+  res.json(result.rows);
+});
+
+app.patch('/api/profiles/:id', async (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'missing name' });
+  const result = await pool.query(
+    'UPDATE profiles SET name = $1 WHERE id = $2 RETURNING id, name',
+    [name.trim(), req.params.id]
+  );
+  if (!result.rows[0]) return res.status(404).json({ error: 'not found' });
+  res.json(result.rows[0]);
+});
+
 // ---- Training state (the exercise data the app used to keep in localStorage) ----
+// Scoped per profile via ?profile=<id>.
 
 app.get('/api/state', async (req, res) => {
-  const result = await pool.query('SELECT value FROM training_state WHERE key = $1', [STATE_KEY]);
+  const storageKey = await getStorageKey(req.query.profile);
+  if (!storageKey) return res.status(404).json({ error: 'unknown profile' });
+  const result = await pool.query('SELECT value FROM training_state WHERE key = $1', [storageKey]);
   res.json({ value: result.rows[0] ? result.rows[0].value : null });
 });
 
 app.put('/api/state', async (req, res) => {
   const { value } = req.body;
   if (value === undefined) return res.status(400).json({ error: 'missing value' });
+  const storageKey = await getStorageKey(req.query.profile);
+  if (!storageKey) return res.status(404).json({ error: 'unknown profile' });
   await pool.query(
     `INSERT INTO training_state (key, value, updated_at) VALUES ($1, $2, now())
      ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = now()`,
-    [STATE_KEY, value]
+    [storageKey, value]
   );
   res.json({ ok: true });
 });
 
 // ---- Coach feedback (written by Claude, read by the app) ----
+// Scoped per profile via ?profile=<id> / profileId in the POST body.
 
 app.get('/api/feedback', async (req, res) => {
+  const profileId = req.query.profile;
+  if (!profileId) return res.status(400).json({ error: 'missing profile' });
   const unreadOnly = req.query.unread === 'true';
   const query = unreadOnly
-    ? 'SELECT * FROM coach_feedback WHERE read = false ORDER BY created_at DESC'
-    : 'SELECT * FROM coach_feedback ORDER BY created_at DESC LIMIT 50';
-  const result = await pool.query(query);
+    ? 'SELECT * FROM coach_feedback WHERE profile_id = $1 AND read = false ORDER BY created_at DESC'
+    : 'SELECT * FROM coach_feedback WHERE profile_id = $1 ORDER BY created_at DESC LIMIT 50';
+  const result = await pool.query(query, [profileId]);
   res.json(result.rows);
 });
 
 app.post('/api/feedback', async (req, res) => {
-  const { exerciseId, day, message } = req.body;
+  const { profileId, exerciseId, day, message } = req.body;
+  if (!profileId) return res.status(400).json({ error: 'missing profileId' });
   if (!message) return res.status(400).json({ error: 'missing message' });
   const result = await pool.query(
-    'INSERT INTO coach_feedback (exercise_id, day, message) VALUES ($1, $2, $3) RETURNING *',
-    [exerciseId || null, day || null, message]
+    'INSERT INTO coach_feedback (profile_id, exercise_id, day, message) VALUES ($1, $2, $3, $4) RETURNING *',
+    [profileId, exerciseId || null, day || null, message]
   );
   res.status(201).json(result.rows[0]);
 });

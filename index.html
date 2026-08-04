@@ -19,24 +19,25 @@
 const { useState, useEffect } = React;
 
 // ---- API-backed replacement for the artifact-only window.storage API ----
-// Backed by /api/state (Postgres via the Express server), so the same data
-// is visible from the phone, the browser, and Claude reading the API directly.
+// Backed by /api/state (Postgres via the Express server), scoped per profile
+// so each person's data is independent, visible from their phone, the
+// browser, and Claude reading the API directly.
 const storage = {
-  async get(key) {
-    const res = await fetch('/api/state');
+  async get(profileId) {
+    const res = await fetch(`/api/state?profile=${encodeURIComponent(profileId)}`);
     if (!res.ok) throw new Error('failed to fetch state');
     const data = await res.json();
     if (data.value === null || data.value === undefined) throw new Error('not found');
-    return { key, value: JSON.stringify(data.value) };
+    return { value: JSON.stringify(data.value) };
   },
-  async set(key, value) {
-    const res = await fetch('/api/state', {
+  async set(profileId, value) {
+    const res = await fetch(`/api/state?profile=${encodeURIComponent(profileId)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ value: JSON.parse(value) }),
     });
     if (!res.ok) throw new Error('failed to save state');
-    return { key, value };
+    return { value };
   }
 };
 
@@ -83,8 +84,6 @@ const WEEKS = {
     '4': { label: 'Conditioning',      exercises: ['landmineTwist', 'kettlebellHalo', 'suitcaseCarry'] },
   },
 };
-
-const STORAGE_KEY = 'lee-training-log-v1';
 
 function defaultCompletedDays() {
   return { '1': false, '2': false, '3': false, '4': false };
@@ -434,19 +433,19 @@ function SessionSummary({ day, exData, loggedIds, skippedIds, onDone }) {
   );
 }
 
-function CoachFeedback() {
+function CoachFeedback({ profileId }) {
   const [items, setItems] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/feedback?unread=true');
+        const res = await fetch(`/api/feedback?profile=${encodeURIComponent(profileId)}&unread=true`);
         if (res.ok) setItems(await res.json());
       } catch {}
       setLoaded(true);
     })();
-  }, []);
+  }, [profileId]);
 
   const dismiss = async (id) => {
     setItems(prev => prev.filter(i => i.id !== id));
@@ -475,7 +474,7 @@ function CoachFeedback() {
   );
 }
 
-function TrainingLog() {
+function TrainingLog({ profileId, profileName, onSwitchProfile }) {
   const [day, setDay] = useState('1');
   const [exData, setExData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -487,22 +486,22 @@ function TrainingLog() {
     (async () => {
       let s;
       try {
-        const r = await storage.get(STORAGE_KEY);
+        const r = await storage.get(profileId);
         s = normalizeState(JSON.parse(r.value));
       } catch {
         s = normalizeState(buildDefaultState());
       }
       setExData(s);
-      try { await storage.set(STORAGE_KEY, JSON.stringify(s)); } catch {}
+      try { await storage.set(profileId, JSON.stringify(s)); } catch {}
       setLoading(false);
     })();
-  }, []);
+  }, [profileId]);
 
   useEffect(() => { setLoggedIds([]); setSkippedIds([]); setSessionDone(false); }, [day]);
 
   const persist = async (next) => {
     setExData(next);
-    try { await storage.set(STORAGE_KEY, JSON.stringify(next)); } catch {}
+    try { await storage.set(profileId, JSON.stringify(next)); } catch {}
   };
 
   const handleLog = (id, sets, sug) => {
@@ -603,7 +602,7 @@ function TrainingLog() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 22 }}>🏋️</span>
-          <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Training Log</h1>
+          <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Training Log — {profileName}</h1>
         </div>
         <button
           onClick={handleForceWeekSwitch}
@@ -612,11 +611,19 @@ function TrainingLog() {
           Switch to Week {week === 1 ? 2 : 1} →
         </button>
       </div>
-      <div style={{ fontSize: 12, color: '#78716c', marginBottom: 16 }}>
-        Week {week} · Day {day} — {daysForWeek[day].label}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: '#78716c' }}>
+          Week {week} · Day {day} — {daysForWeek[day].label}
+        </div>
+        <button
+          onClick={onSwitchProfile}
+          style={{ fontSize: 11, color: '#57534e', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+        >
+          Not {profileName}?
+        </button>
       </div>
 
-      <CoachFeedback />
+      <CoachFeedback profileId={profileId} />
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
         {Object.keys(daysForWeek).map(d => {
@@ -690,8 +697,73 @@ function TrainingLog() {
   );
 }
 
+const PROFILE_STORAGE_KEY = 'trainingLogProfile';
+
+// Fixed roster picker — no self-signup. Lee assigns spare slots to real
+// people (via a rename), so this just lists whoever the server already
+// knows about.
+function ProfilePicker({ onSelect }) {
+  const [profiles, setProfiles] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/profiles');
+        setProfiles(res.ok ? await res.json() : []);
+      } catch {
+        setProfiles([]);
+      }
+    })();
+  }, []);
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#0c0a09', color: '#f5f5f4', padding: '16px', maxWidth: 480, margin: '0 auto', fontFamily: 'system-ui, sans-serif', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <div style={{ fontSize: 32 }}>🏋️</div>
+        <h1 style={{ fontSize: 20, fontWeight: 700, margin: '8px 0 4px' }}>Who's training?</h1>
+        <div style={{ fontSize: 13, color: '#78716c' }}>Each person has their own weights and history.</div>
+      </div>
+
+      {profiles === null ? (
+        <div style={{ textAlign: 'center', color: '#78716c' }}>Loading…</div>
+      ) : profiles.length === 0 ? (
+        <div style={{ textAlign: 'center', color: '#78716c' }}>Couldn't load the list — try reloading.</div>
+      ) : (
+        profiles.map(p => (
+          <button
+            key={p.id}
+            onClick={() => onSelect(p)}
+            style={{ width: '100%', padding: 14, borderRadius: 10, marginBottom: 8, background: '#1c1917', border: '1px solid #292524', color: '#f5f5f4', fontSize: 15, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}
+          >
+            {p.name}
+          </button>
+        ))
+      )}
+    </div>
+  );
+}
+
+function App() {
+  const [profile, setProfile] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY)); } catch { return null; }
+  });
+
+  const selectProfile = (p) => {
+    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(p));
+    setProfile(p);
+  };
+
+  const switchProfile = () => {
+    localStorage.removeItem(PROFILE_STORAGE_KEY);
+    setProfile(null);
+  };
+
+  if (!profile) return <ProfilePicker onSelect={selectProfile} />;
+  return <TrainingLog profileId={profile.id} profileName={profile.name} onSwitchProfile={switchProfile} />;
+}
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<TrainingLog />);
+root.render(<App />);
 
 </script>
 </body>
