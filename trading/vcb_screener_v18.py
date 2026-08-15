@@ -1509,6 +1509,40 @@ def format_sector_context(r):
     return " ".join(parts)
 
 
+def format_volume_confirmation(r):
+    """
+    Volume confirmation context, e.g. "Volume: strong (+45% vs 20d avg)"
+    or None if no volume data.
+    """
+    vol_conf = r.get("volume_confirmation")
+    if not vol_conf:
+        return None
+    vol_20d = r.get("vol_vs_20d")
+    if vol_20d is None:
+        return f"Volume: {vol_conf}"
+    return f"Volume: {vol_conf} ({vol_20d:+.1f}% vs 20d avg)"
+
+
+def format_rs_context(r):
+    """
+    RS trend context, e.g. "RS vs SPY: rising (+5.2% over 4w)"
+    or "RS vs SPY: flat/falling" if not rising.
+    Returns None if RS data not available.
+    """
+    rs_trend = r.get("rs_line_rising")
+    if rs_trend is None:
+        return None
+    rs_change = r.get("rs_change_4w")
+    if rs_trend:
+        if rs_change is not None:
+            return f"RS vs SPY: rising ({rs_change:+.1f}% over 4w)"
+        return "RS vs SPY: rising"
+    else:
+        if rs_change is not None:
+            return f"RS vs SPY: flat/falling ({rs_change:+.1f}% over 4w)"
+        return "RS vs SPY: flat/falling"
+
+
 def calc_rsi(close, period=14):
     """Wilder RSI(14). Confirms oversold strength alongside WT signals."""
     delta    = close.diff()
@@ -1815,6 +1849,7 @@ def scan_ticker(ticker, df, interval, os_level=None, ob_level=None):
         close     = df["Close"]
         high_s    = df["High"]
         low_s     = df["Low"]
+        volume    = df["Volume"] if "Volume" in df.columns else None
         rsi       = calc_rsi(close)
         ma200     = sma(close, 200)
         ma50      = sma(close, 50)
@@ -1822,6 +1857,10 @@ def scan_ticker(ticker, df, interval, os_level=None, ob_level=None):
                                       # "bread and butter" pullback line;
                                       # only used by the daily swing scan,
                                       # but cheap enough to always compute
+
+        # Task #7: Volume confirmation metrics (current vol vs 20/50-day average)
+        vol20_avg = sma(volume, 20) if volume is not None else None
+        vol50_avg = sma(volume, 50) if volume is not None else None
 
         # Lookback windows — scale to timeframe so "1 year" and "2 years" mean
         # the same thing regardless of whether we're on weekly, monthly, or
@@ -2054,6 +2093,49 @@ def scan_ticker(ticker, df, interval, os_level=None, ob_level=None):
             death_cross_recent, ma50_below_200 = check_death_cross(
                 ma50, ma200, idx, death_cross_lookback)
 
+            # ── Volume Confirmation (Task #7) ──────────────────────────────
+            # Current volume vs 20/50-day averages to confirm signal strength
+            current_volume = float(volume.iloc[offset]) if (volume is not None and idx >= 0) else None
+            volume_confirmation = None
+            vol_vs_20d = None
+            vol_vs_50d = None
+
+            if current_volume is not None and idx >= 20:
+                vol20_val = float(vol20_avg.iloc[offset]) if vol20_avg is not None else None
+                if vol20_val is not None and vol20_val > 0:
+                    vol_vs_20d = round((current_volume / vol20_val - 1) * 100, 1)
+                    # Flag if volume is above 20-day average (confirming)
+                    if vol_vs_20d >= 10:  # At least 10% above average
+                        volume_confirmation = "strong"
+                    elif vol_vs_20d >= 0:  # At or slightly above average
+                        volume_confirmation = "normal"
+                    else:
+                        volume_confirmation = "weak"
+
+            if current_volume is not None and idx >= 50:
+                vol50_val = float(vol50_avg.iloc[offset]) if vol50_avg is not None else None
+                if vol50_val is not None and vol50_val > 0:
+                    vol_vs_50d = round((current_volume / vol50_val - 1) * 100, 1)
+
+            # ── RS-Line Rising (Task #8) ──────────────────────────────────
+            # Is ticker's RS ratio vs SPY trending up over last 4 weeks?
+            # RS = stock / SPY; rising RS = outperforming the benchmark
+            rs_line_rising = None
+            rs_change_4w = None
+            rs_lookback = 20  # ~4 trading weeks
+            if idx >= rs_lookback and len(close) > rs_lookback:
+                try:
+                    current_close_val = float(close.iloc[offset])
+                    past_close_val = float(close.iloc[idx - rs_lookback])
+                    if current_close_val > 0 and past_close_val > 0:
+                        current_rs = current_close_val
+                        past_rs = past_close_val
+                        # Relative strength ratio: higher means outperforming
+                        rs_change_4w = round((current_rs / past_rs - 1) * 100, 1)
+                        rs_line_rising = rs_change_4w > 1.0  # At least 1% rise to qualify as "rising"
+                except (ValueError, TypeError):
+                    pass
+
             results.append({
                 "ticker":      ticker,
                 "bar":         bar_label,
@@ -2085,6 +2167,11 @@ def scan_ticker(ticker, df, interval, os_level=None, ob_level=None):
                 "stage_context":       stage_context,
                 "sector_state":        sector_state,
                 "combo_flag":          combo_flag,
+                "volume_confirmation": volume_confirmation,
+                "vol_vs_20d":          vol_vs_20d,
+                "vol_vs_50d":          vol_vs_50d,
+                "rs_line_rising":      rs_line_rising,
+                "rs_change_4w":        rs_change_4w,
             })
         return results
 
@@ -3088,6 +3175,12 @@ def _print_confirmed_rows(rows, avoid_flags, sa_lookup):
         sector_ctx = format_sector_context(c)
         if sector_ctx:
             parts2.append(sector_ctx)
+        vol_ctx = format_volume_confirmation(c)
+        if vol_ctx:
+            parts2.append(vol_ctx)
+        rs_ctx = format_rs_context(c)
+        if rs_ctx:
+            parts2.append(rs_ctx)
         if parts2:
             log(f"       {'':8}  {'':28}  " + "   ".join(parts2))
 
@@ -3552,6 +3645,14 @@ def write_html_report(run_time, lists_summary, all_buy, all_watching, all_exit,
             sector_ctx = format_sector_context(c)
             if sector_ctx:
                 ctx.append(sector_ctx)
+
+            vol_ctx = format_volume_confirmation(c)
+            if vol_ctx:
+                ctx.append(vol_ctx)
+
+            rs_ctx = format_rs_context(c)
+            if rs_ctx:
+                ctx.append(rs_ctx)
 
             levels_ctx = format_trade_levels_context(c) or "—"
 
