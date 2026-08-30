@@ -93,29 +93,41 @@ function defaultMeta() {
   return { week: 1, completedDays: { 1: defaultCompletedDays(), 2: defaultCompletedDays() } };
 }
 
+// One exercise's stored data object: weight (+ optional weightL/weightR),
+// history, a free-text notes field, and the state the Easy/Hard oscillation
+// logic needs (repTarget/repPhase/hardStreak).
+function defaultExerciseState(id, ex) {
+  return {
+    weight: ex.weight, weightL: ex.weightL, weightR: ex.weightR,
+    history: [],
+    notes: id === 'farmersCarry' ? '40m per set, plus shoulder shrugs after' : '',
+    repTarget: ex.repMax,
+    repPhase: 'push',
+    hardStreak: 0,
+  };
+}
+
 function buildDefaultState() {
   const s = {};
   Object.entries(EXERCISES).forEach(([id, ex]) => {
-    s[id] = {
-      weight: ex.weight, weightL: ex.weightL, weightR: ex.weightR,
-      history: [],
-      notes: id === 'farmersCarry' ? '40m per set, plus shoulder shrugs after' : ''
-    };
+    s[id] = defaultExerciseState(id, ex);
   });
   return s;
 }
 
 // Patches older saved state: adds any exercise ids that didn't exist yet
-// when it was saved, and ensures __meta (week/completion tracking) exists.
+// when it was saved, backfills the Easy/Hard oscillation fields onto older
+// exercise entries that predate them, and ensures __meta (week/completion
+// tracking) exists.
 function normalizeState(loaded) {
   const s = { ...loaded };
   Object.entries(EXERCISES).forEach(([id, ex]) => {
     if (!s[id]) {
-      s[id] = {
-        weight: ex.weight, weightL: ex.weightL, weightR: ex.weightR,
-        history: [],
-        notes: id === 'farmersCarry' ? '40m per set, plus shoulder shrugs after' : ''
-      };
+      s[id] = defaultExerciseState(id, ex);
+    } else {
+      if (s[id].repTarget === undefined) s[id].repTarget = ex.repMax;
+      if (s[id].repPhase === undefined) s[id].repPhase = 'push';
+      if (s[id].hardStreak === undefined) s[id].hardStreak = 0;
     }
   });
   if (!s.__meta) {
@@ -139,22 +151,152 @@ function updateMetaAfterAction(meta, week, dayNum, coveredIds) {
   return { ...meta, week: nextWeek, completedDays };
 }
 
-function getSuggestion(ex, sets) {
-  const maxEffort = Math.max(...sets.map(s => s.effort));
-  if (ex.noReps) {
-    if (maxEffort <= 7) return { action: 'increase', text: `Felt manageable — try +${ex.increment}${ex.unit.replace('/hand','')} per hand next time.` };
-    if (maxEffort >= 9) return { action: 'hold', text: 'Tough effort — hold this load and focus on form.' };
-    return { action: 'hold', text: 'Solid carry — repeat this load next time.' };
+// Resolves an overall Easy/Hard verdict for the session from any per-set
+// marks, falling back to whichever "Log Session" button was actually
+// pressed when no sets were marked (or the marks are a genuine tie).
+function resolveVerdict(marks, buttonPressed, numSets) {
+  const touched = marks.filter(Boolean);
+  if (touched.length === 0) return buttonPressed;
+
+  if (numSets === 3) {
+    const easyCount = touched.filter(m => m === 'easy').length;
+    const hardCount = touched.filter(m => m === 'hard').length;
+    if (easyCount >= 2) return 'easy';
+    if (hardCount >= 2) return 'hard';
+    return buttonPressed; // genuine tie fallback
   }
-  const reps = sets.map(s => s.reps);
-  const allHitTop = reps.every(r => Number(r) >= ex.repMax);
-  const anyBelowMin = reps.some(r => Number(r) < ex.repMin);
-  if (allHitTop && maxEffort <= 7) return { action: 'increase', text: `Top of range, felt controlled — go up ${ex.increment}${ex.unit} next time.` };
-  if (maxEffort >= 9 || anyBelowMin) return { action: 'hold', text: `Hold this weight — focus on hitting ${ex.repMin}–${ex.repMax} reps with good form.` };
-  return { action: 'hold', text: 'Solid session — same weight next time, aim for the top of the rep range.' };
+
+  // 2-set exercises
+  if (marks[0] === 'hard' && marks[1] === 'hard') return 'hard';
+  const last = [...marks].reverse().find(Boolean);
+  return last || buttonPressed;
 }
 
-const effortBg = e => e <= 6 ? '#166534' : e <= 8 ? '#92400e' : '#991b1b';
+// Decision engine: given the resolved verdict, returns the updated
+// weight/repTarget/repPhase/hardStreak for an exercise. noReps exercises
+// (Farmer's Carry, Suitcase Carry) skip all rep logic and only return
+// weight/hardStreak.
+function applyVerdict(ex, cur, verdict) {
+  const baseline = ex.repMax;
+  const floor = baseline - 2;
+  let { weight, repTarget, repPhase, hardStreak } = cur;
+
+  if (ex.noReps) {
+    if (verdict === 'easy') { weight += ex.increment; hardStreak = 0; }
+    else {
+      hardStreak += 1;
+      if (hardStreak >= 2) { weight -= ex.increment; hardStreak = 0; }
+    }
+    return { weight, hardStreak };
+  }
+
+  if (verdict === 'easy') {
+    hardStreak = 0;
+    if (repPhase === 'push') {
+      weight += ex.increment;
+      repTarget = Math.max(repTarget - 2, floor);
+      repPhase = 'recover';
+    } else {
+      repTarget = Math.min(repTarget + 2, baseline);
+      repPhase = 'push';
+    }
+  } else { // hard
+    repTarget = Math.max(repTarget - 2, floor);
+    hardStreak += 1;
+    if (hardStreak >= 2) {
+      weight -= ex.increment;
+      repTarget = baseline;   // reset on the weight drop
+      hardStreak = 0;
+    }
+  }
+  return { weight, repTarget, repPhase, hardStreak };
+}
+
+const MANUAL_SECTIONS = [
+  {
+    title: 'Getting Started',
+    body: `Pick your name on the first screen — each person's weights and history are stored separately, so there's no mix-up.
+
+Choose a Day (1–4) for the week you're in, then tap an exercise to open it and log your sets. The app remembers your current week and which days you've completed, so it always opens back up where you left off.`,
+  },
+  {
+    title: 'Daily Use — Logging vs. Feedback',
+    body: `These are two separate things — don't confuse them:
+
+• Logging a session ("Log Session — Easy" or "Log Session — Hard") saves your reps and marks to this app and updates next session's target weight/reps. This is the only action that actually changes your saved data.
+
+• "Copy summary to ask Claude" just copies text to your clipboard so you can paste it into a chat with Claude for feedback. It does not save anything and does not change any weights — you can copy a summary as many times as you like without it affecting your log.`,
+  },
+  {
+    title: 'Understanding Your Programme',
+    body: `Training runs on a 2-week alternating split:
+
+Week 1 — Push / Pull / Legs / Accessory
+Week 2 — Back & Chest / Arms & Shoulders / Legs / Conditioning
+
+Once all 4 days in a week are marked complete (logged or skipped), the app automatically flips you to the other week and back to Day 1.
+
+Weight and rep progress for a given exercise carries over no matter which week/day it's under — e.g. Rope Pressdown shows up in both Week 1 Push and Week 1 Accessory, and shares one weight between them.`,
+  },
+  {
+    title: 'Effort Ratings',
+    body: `Each set has optional Easy / Hard toggles — leave them alone if you don't want to bother, and just tap one of the two "Log Session" buttons at the bottom based on how the whole session felt.
+
+If you do mark individual sets, the app resolves an overall verdict from them instead of just using the button you pressed (a clear majority wins for 3-set exercises, the last set marked wins for 2-set exercises, and two Hard sets always counts as an overall Hard).
+
+Baseline & floor: reps never drop more than 2 below the exercise's normal top-of-range target, no matter how many Hard sessions in a row.
+
+Push/recover cycle: an Easy session alternates between two effects — first "weight up, reps down slightly," then on the next Easy, "reps recover back up" (with no weight change). That way you're never hit with a weight jump and a rep increase at the same time.
+
+Two Hard sessions in a row drop the weight by one increment and reset reps back to the full target — a fresh start at the lower weight.
+
+Farmer's Carry and Suitcase Carry are weight-only (no reps to track): an Easy session adds one increment; two Hard sessions in a row remove one increment.`,
+  },
+  {
+    title: 'Elbow / Injury Notes',
+    body: `Exercises flagged with ⚠ elbow (Cable Lateral Raise, EZ Bar Curl, Close Grip Bench, Preacher Curl, Hammer Curl) are marked because of the right tennis elbow — go carefully and back off if it flares up.
+
+Cable Lateral Raise is tracked separately per side. Only the left side auto-adjusts from your Easy/Hard sessions — the right side never changes weight on its own. If the right side needs a change, use the ✏️ pencil next to the weight to edit it manually.`,
+  },
+  {
+    title: 'Troubleshooting',
+    body: `Logged in as the wrong person? Tap "Not [name]?" near the top to switch profiles cleanly.
+
+Machine reads a different effective weight than what's logged (e.g. two different pressdown machines)? Don't try to log around it — use the ✏️ pencil next to the weight to correct it directly. That's a pure manual correction: it doesn't touch your history or your Easy/Hard progression.
+
+"↺ Reset all progress" at the bottom of the screen wipes everything back to starting weights for the current profile — use it with care, it can't be undone.`,
+  },
+];
+
+function ManualModal({ onClose }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: '#0c0a09', borderTop: '1px solid #1d4ed8', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 480, maxHeight: '85vh', overflowY: 'auto', padding: '16px', boxSizing: 'border-box' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#f5f5f4' }}>📖 Manual</div>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', color: '#a8a29e', fontSize: 20, lineHeight: 1, cursor: 'pointer', padding: 4 }}
+          >
+            ✕
+          </button>
+        </div>
+        {MANUAL_SECTIONS.map((sec, i) => (
+          <div key={i} style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#93c5fd', marginBottom: 5 }}>{sec.title}</div>
+            <div style={{ fontSize: 13, color: '#d6d3d1', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{sec.body}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function CopySummaryButton({ text, label }) {
   const [copied, setCopied] = useState(false);
@@ -183,13 +325,17 @@ function CopySummaryButton({ text, label }) {
   );
 }
 
-function ExerciseCard({ id, ex, data, onLog, onNoteChange, skipped, onSkip }) {
+function ExerciseCard({ id, ex, data, onLog, onSaveNotes, onEditWeight, skipped, onSkip }) {
   const [open, setOpen] = useState(false);
-  const [sets, setSets] = useState(Array.from({ length: ex.sets }, () => ({ reps: ex.repMax || '', effort: 7 })));
+  const [sets, setSets] = useState(Array.from({ length: ex.sets }, () => ({ reps: ex.repMax || '' })));
+  const [marks, setMarks] = useState(Array.from({ length: ex.sets }, () => null));
   const [logged, setLogged] = useState(false);
-  const [suggestion, setSuggestion] = useState(null);
+  const [verdict, setVerdict] = useState(null);
   const [note, setNote] = useState(data.notes || '');
-  const [change, setChange] = useState('');
+  const [editingWeight, setEditingWeight] = useState(false);
+  const [editW, setEditW] = useState('');
+  const [editWL, setEditWL] = useState('');
+  const [editWR, setEditWR] = useState('');
 
   const weightLabel = ex.weightL !== undefined
     ? `L ${data.weightL}${ex.unit} / R ${data.weightR}${ex.unit}`
@@ -198,41 +344,60 @@ function ExerciseCard({ id, ex, data, onLog, onNoteChange, skipped, onSkip }) {
   const trend = data.history.slice(-4).map(h => h.weightLabel).join(' → ');
   const last = data.history[data.history.length - 1];
 
-  const handleLog = () => {
-    const sug = getSuggestion(ex, sets);
-    setSuggestion(sug);
-    setLogged(true);
-    onLog(id, sets, sug);
+  const toggleMark = (i, val) => {
+    setMarks(prev => prev.map((m, idx) => (idx === i ? (m === val ? null : val) : m)));
   };
 
-  const handleSaveChange = () => {
-    if (!change.trim()) return;
-    const kgMatch = change.match(/(\d+\.?\d*)\s*kg/i);
-    const numMatch = change.match(/\b(\d+\.?\d*)\b/);
-    let updates = {};
-    if (kgMatch) updates.weight = parseFloat(kgMatch[1]);
-    else if (numMatch) updates.weight = parseFloat(numMatch[1]);
-    if (Object.keys(updates).length > 0) onNoteChange(id, updates, change);
-    else onNoteChange(id, {}, change);
+  const doLog = (buttonPressed) => {
+    const verd = resolveVerdict(marks, buttonPressed, ex.sets);
+    setVerdict(verd);
+    setLogged(true);
+    onLog(id, sets, marks, verd, note);
   };
+
+  const openWeightEdit = () => {
+    setEditW(data.weight != null ? String(data.weight) : '');
+    setEditWL(data.weightL != null ? String(data.weightL) : '');
+    setEditWR(data.weightR != null ? String(data.weightR) : '');
+    setEditingWeight(true);
+  };
+
+  const handleSaveWeight = (e) => {
+    e.stopPropagation();
+    const updates = ex.weightL !== undefined
+      ? { weightL: parseFloat(editWL) || 0, weightR: parseFloat(editWR) || 0 }
+      : { weight: parseFloat(editW) || 0 };
+    onEditWeight(id, updates);
+    setEditingWeight(false);
+  };
+
+  const handleCancelWeight = (e) => {
+    e.stopPropagation();
+    setEditingWeight(false);
+  };
+
+  const markLabel = m => (m === 'easy' ? 'Easy' : m === 'hard' ? 'Hard' : '');
 
   const summaryText = (() => {
     const wLabel = ex.weightL !== undefined ? `L ${data.weightL}kg / R ${data.weightR}kg` : `${data.weight}${ex.unit}`;
-    const setsDesc = sets.map((s,i) => ex.noReps ? `Set ${i+1}: effort ${s.effort}/10` : `Set ${i+1}: ${s.reps} reps @ effort ${s.effort}/10`).join(', ');
+    const setsDesc = sets.map((s, i) => {
+      const m = markLabel(marks[i]);
+      return ex.noReps ? `Set ${i+1}${m ? `: ${m}` : ''}` : `Set ${i+1}: ${s.reps} reps${m ? ` — ${m}` : ''}`;
+    }).join(', ');
     let text =
       `[Training log — ${ex.name}]\n` +
       `Weight: ${wLabel} | Sets: ${setsDesc} | Target: ${ex.noReps ? 'carries' : `${ex.repMin}–${ex.repMax} reps`}\n` +
-      `System suggestion: ${suggestion ? suggestion.text : 'N/A'}\n` +
+      `Session verdict: ${verdict ? markLabel(verdict) : 'N/A'}\n` +
       `Right elbow caution: ${ex.caution ? 'YES' : 'no'}`;
-    if (change.trim()) text += `\nMy note: ${change}`;
+    if (note.trim()) text += `\nMy note: ${note}`;
     return text + `\n\nCan you give me a quick read on this and what to do next time?`;
   })();
 
   return (
     <div style={{ border: '1px solid #292524', borderRadius: 12, background: '#1c1917', marginBottom: 8, overflow: 'hidden' }}>
-      <button
+      <div
         onClick={() => setOpen(o => !o)}
-        style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+        style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', cursor: 'pointer', textAlign: 'left' }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -248,9 +413,41 @@ function ExerciseCard({ id, ex, data, onLog, onNoteChange, skipped, onSkip }) {
               </span>
             )}
           </div>
-          <div style={{ fontSize: 14, color: '#f5f5f4', marginTop: 2 }}>
-            {weightLabel} · {ex.sets} × {ex.noReps ? 'carries' : (ex.repMin === ex.repMax ? ex.repMin : `${ex.repMin}–${ex.repMax}`)}
+          <div style={{ fontSize: 14, color: '#f5f5f4', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>{weightLabel} · {ex.sets} × {ex.noReps ? 'carries' : (ex.repMin === ex.repMax ? ex.repMin : `${ex.repMin}–${ex.repMax}`)}</span>
+            <button
+              onClick={e => { e.stopPropagation(); editingWeight ? setEditingWeight(false) : openWeightEdit(); }}
+              style={{ background: 'none', border: 'none', color: '#78716c', fontSize: 12, cursor: 'pointer', padding: 0, flexShrink: 0 }}
+            >
+              ✏️
+            </button>
           </div>
+          {editingWeight && (
+            <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+              {ex.weightL !== undefined ? (
+                <>
+                  <input
+                    type="number" inputMode="decimal" value={editWL} placeholder="Left"
+                    onChange={e => setEditWL(e.target.value)}
+                    style={{ width: 64, background: '#0c0a09', border: '1px solid #3f3f46', borderRadius: 8, padding: '5px 7px', fontSize: 12, color: '#f5f5f4' }}
+                  />
+                  <input
+                    type="number" inputMode="decimal" value={editWR} placeholder="Right"
+                    onChange={e => setEditWR(e.target.value)}
+                    style={{ width: 64, background: '#0c0a09', border: '1px solid #3f3f46', borderRadius: 8, padding: '5px 7px', fontSize: 12, color: '#f5f5f4' }}
+                  />
+                </>
+              ) : (
+                <input
+                  type="number" inputMode="decimal" value={editW}
+                  onChange={e => setEditW(e.target.value)}
+                  style={{ width: 70, background: '#0c0a09', border: '1px solid #3f3f46', borderRadius: 8, padding: '5px 7px', fontSize: 12, color: '#f5f5f4' }}
+                />
+              )}
+              <button onClick={handleSaveWeight} style={{ fontSize: 12, fontWeight: 600, padding: '5px 10px', borderRadius: 6, background: '#166534', border: 'none', color: '#fff', cursor: 'pointer' }}>Save</button>
+              <button onClick={handleCancelWeight} style={{ fontSize: 12, padding: '5px 10px', borderRadius: 6, background: 'none', border: '1px solid #3f3f46', color: '#a8a29e', cursor: 'pointer' }}>Cancel</button>
+            </div>
+          )}
           {data.notes && (
             <div style={{ fontSize: 14, color: '#f5f5f4', marginTop: 1, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {data.notes}
@@ -258,7 +455,7 @@ function ExerciseCard({ id, ex, data, onLog, onNoteChange, skipped, onSkip }) {
           )}
         </div>
         <span style={{ color: '#78716c', fontSize: 16, marginLeft: 8, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
-      </button>
+      </div>
 
       {open && skipped && (
         <div style={{ borderTop: '1px solid #292524', padding: '12px 14px' }}>
@@ -281,37 +478,61 @@ function ExerciseCard({ id, ex, data, onLog, onNoteChange, skipped, onSkip }) {
               ℹ {ex.note}
             </div>
           )}
-          {trend && <div style={{ fontSize: 12, color: '#57534e', marginBottom: 10 }}>📈 {trend}</div>}
+          {trend && <div style={{ fontSize: 14, color: '#f5f5f4', marginBottom: 10 }}>📈 {trend}</div>}
 
           {sets.map((s, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
-              <span style={{ fontSize: 12, color: '#57534e', width: 44, flexShrink: 0 }}>Set {i+1}</span>
+              <span style={{ fontSize: 14, color: '#f5f5f4', width: 44, flexShrink: 0 }}>Set {i+1}</span>
               {!ex.noReps && (
                 <input
                   type="number" inputMode="numeric" value={s.reps}
                   onChange={e => setSets(prev => prev.map((x, idx) => idx === i ? { ...x, reps: e.target.value === '' ? '' : Number(e.target.value) } : x))}
                   placeholder="reps"
-                  style={{ width: 60, background: '#0c0a09', border: '1px solid #292524', borderRadius: 8, padding: '6px 8px', fontSize: 13, color: '#f5f5f4', textAlign: 'center' }}
+                  style={{ width: 60, background: '#0c0a09', border: '1px solid #292524', borderRadius: 8, padding: '6px 8px', fontSize: 14, color: '#f5f5f4', textAlign: 'center' }}
                 />
               )}
-              <select
-                value={s.effort}
-                onChange={e => setSets(prev => prev.map((x, idx) => idx === i ? { ...x, effort: Number(e.target.value) } : x))}
-                style={{ flex: 1, background: effortBg(s.effort), border: 'none', borderRadius: 8, padding: '6px 8px', fontSize: 12, color: '#fff' }}
-              >
-                {Array.from({ length: 10 }, (_, n) => (
-                  <option key={n+1} value={n+1}>{n+1 === 8 ? 'Effort 8 — hard but done' : `Effort ${n+1}`}</option>
-                ))}
-              </select>
+              <div style={{ display: 'flex', gap: 4, flex: 1 }}>
+                <button
+                  onClick={() => toggleMark(i, 'easy')}
+                  style={{ flex: 1, padding: '6px 4px', borderRadius: 8, border: '1px solid #444', background: marks[i] === 'easy' ? '#166534' : 'transparent', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Easy
+                </button>
+                <button
+                  onClick={() => toggleMark(i, 'hard')}
+                  style={{ flex: 1, padding: '6px 4px', borderRadius: 8, border: '1px solid #444', background: marks[i] === 'hard' ? '#991b1b' : 'transparent', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Hard
+                </button>
+              </div>
             </div>
           ))}
 
-          <button
-            onClick={handleLog}
-            style={{ width: '100%', padding: 10, borderRadius: 8, background: '#c2410c', border: 'none', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginTop: 6 }}
-          >
-            {logged ? 'Re-log session' : 'Log session'}
-          </button>
+          <div style={{ marginTop: 10 }}>
+            <textarea
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              onBlur={() => onSaveNotes(id, note)}
+              rows={2}
+              placeholder="Notes — variations, distances, swaps…"
+              style={{ width: '100%', background: '#0c0a09', border: '1px solid #292524', borderRadius: 8, padding: '7px 10px', fontSize: 12, color: '#e7e5e4', resize: 'none', fontFamily: 'system-ui', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button
+              onClick={() => doLog('easy')}
+              style={{ flex: 1, padding: 10, borderRadius: 8, background: '#166534', border: 'none', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            >
+              Log Session — Easy
+            </button>
+            <button
+              onClick={() => doLog('hard')}
+              style={{ flex: 1, padding: 10, borderRadius: 8, background: '#991b1b', border: 'none', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            >
+              Log Session — Hard
+            </button>
+          </div>
 
           {!logged && (
             <button
@@ -322,54 +543,20 @@ function ExerciseCard({ id, ex, data, onLog, onNoteChange, skipped, onSkip }) {
             </button>
           )}
 
-          {suggestion && (
-            <div style={{
-              marginTop: 10, padding: '10px 12px', borderRadius: 8, fontSize: 13,
-              background: suggestion.action === 'increase' ? 'rgba(20,83,45,0.4)' : '#1c1917',
-              border: `1px solid ${suggestion.action === 'increase' ? 'rgba(22,101,52,0.5)' : '#292524'}`,
-              color: suggestion.action === 'increase' ? '#86efac' : '#a8a29e'
-            }}>
-              {suggestion.text}
-              {ex.weightL !== undefined && suggestion.action === 'increase' && (
-                <div style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>Right side is your call — only if the elbow allows.</div>
-              )}
-            </div>
-          )}
-
           {logged && (
             <div style={{ marginTop: 10, padding: '12px', borderRadius: 10, border: '1px solid #3f3f46', background: '#18181b' }}>
               <div style={{ fontSize: 12, color: '#a1a1aa', marginBottom: 6, fontWeight: 600 }}>
-                Any changes or corrections?
+                Verdict: {markLabel(verdict)}
               </div>
-              <textarea
-                value={change}
-                onChange={e => setChange(e.target.value)}
-                onBlur={handleSaveChange}
-                placeholder={'e.g. "Used 55kg instead" or "swapped to dumbbells" or "skipped right side"'}
-                rows={2}
-                style={{ width: '100%', background: '#0c0a09', border: '1px solid #3f3f46', borderRadius: 8, padding: '7px 10px', fontSize: 13, color: '#e4e4e7', resize: 'none', fontFamily: 'system-ui', boxSizing: 'border-box' }}
-              />
               <CopySummaryButton text={summaryText} label="Copy summary to ask Claude →" />
             </div>
           )}
 
           {last && (
-            <div style={{ fontSize: 12, color: '#57534e', marginTop: 10 }}>
-              Last ({last.weightLabel}): {last.sets.map(s => ex.noReps ? `e${s.effort}` : `${s.reps}@e${s.effort}`).join(', ')}
+            <div style={{ fontSize: 14, color: '#f5f5f4', marginTop: 10 }}>
+              Last ({last.weightLabel}): {last.sets.map(s => ex.noReps ? (markLabel(s.mark) || '–') : `${s.reps}${s.mark ? `(${markLabel(s.mark)})` : ''}`).join(', ')}
             </div>
           )}
-
-          <div style={{ marginTop: 10 }}>
-            <label style={{ fontSize: 12, color: '#57534e', display: 'block', marginBottom: 4 }}>Notes</label>
-            <textarea
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              onBlur={() => onNoteChange(id, {}, '', note)}
-              rows={2}
-              placeholder="Variations, distances, swaps…"
-              style={{ width: '100%', background: '#0c0a09', border: '1px solid #292524', borderRadius: 8, padding: '7px 10px', fontSize: 12, color: '#e7e5e4', resize: 'none', fontFamily: 'system-ui', boxSizing: 'border-box' }}
-            />
-          </div>
         </div>
       )}
     </div>
@@ -391,7 +578,7 @@ function SessionSummary({ day, exData, loggedIds, skippedIds, onDone }) {
       const ex = EXERCISES[id];
       const last = exData[id].history[exData[id].history.length - 1];
       if (!last) return null;
-      const setsDesc = last.sets.map(s => ex.noReps ? `e${s.effort}` : `${s.reps}@e${s.effort}`).join(', ');
+      const setsDesc = last.sets.map(s => ex.noReps ? (s.mark || 'no mark') : `${s.reps}${s.mark ? ` (${s.mark})` : ''}`).join(', ');
       return `• ${ex.name} (${last.weightLabel}): ${setsDesc}`;
     }).filter(Boolean).join('\n');
 
@@ -481,6 +668,7 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
   const [loggedIds, setLoggedIds] = useState([]);
   const [skippedIds, setSkippedIds] = useState([]);
   const [sessionDone, setSessionDone] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -504,18 +692,27 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
     try { await storage.set(profileId, JSON.stringify(next)); } catch {}
   };
 
-  const handleLog = (id, sets, sug) => {
+  const handleLog = (id, sets, marks, verdict, note) => {
     const ex = EXERCISES[id];
     const cur = exData[id];
-    const next = { ...cur, history: [...cur.history] };
+    const today = new Date().toISOString().slice(0,10);
+    const historySets = sets.map((s, i) => ex.noReps ? { mark: marks[i] } : { reps: s.reps, mark: marks[i] });
+    let next = { ...cur, history: [...cur.history], notes: note };
+
     if (ex.weightL !== undefined) {
-      const newL = sug.action === 'increase' ? cur.weightL + ex.increment : cur.weightL;
-      next.weightL = newL;
-      next.history.push({ date: new Date().toISOString().slice(0,10), weightLabel: `L${newL}/R${cur.weightR}`, sets });
+      const result = applyVerdict(ex, { weight: cur.weightL, repTarget: cur.repTarget, repPhase: cur.repPhase, hardStreak: cur.hardStreak }, verdict);
+      next.weightL = +Number(result.weight).toFixed(2);
+      if (result.repTarget !== undefined) next.repTarget = result.repTarget;
+      if (result.repPhase !== undefined) next.repPhase = result.repPhase;
+      next.hardStreak = result.hardStreak;
+      next.history.push({ date: today, weightLabel: `L${next.weightL}/R${cur.weightR}`, sets: historySets });
     } else {
-      const newW = sug.action === 'increase' ? +(cur.weight + ex.increment).toFixed(2) : cur.weight;
-      next.weight = newW;
-      next.history.push({ date: new Date().toISOString().slice(0,10), weightLabel: `${newW}${ex.unit}`, sets });
+      const result = applyVerdict(ex, cur, verdict);
+      next.weight = +Number(result.weight).toFixed(2);
+      if (result.repTarget !== undefined) next.repTarget = result.repTarget;
+      if (result.repPhase !== undefined) next.repPhase = result.repPhase;
+      next.hardStreak = result.hardStreak;
+      next.history.push({ date: today, weightLabel: `${next.weight}${ex.unit}`, sets: historySets });
     }
     next.history = next.history.slice(-6);
 
@@ -535,16 +732,13 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
     }
   };
 
-  const handleNoteChange = (id, updates, changeText, directNote) => {
-    const cur = { ...exData[id] };
-    if (directNote !== undefined) {
-      cur.notes = directNote;
-    } else {
-      if (updates.weight != null) cur.weight = updates.weight;
-      if (updates.weightL != null) cur.weightL = updates.weightL;
-      if (updates.weightR != null) cur.weightR = updates.weightR;
-      if (changeText) cur.notes = changeText;
-    }
+  const handleSaveNotes = (id, note) => {
+    const cur = { ...exData[id], notes: note };
+    persist({ ...exData, [id]: cur });
+  };
+
+  const handleEditWeight = (id, updates) => {
+    const cur = { ...exData[id], ...updates };
     persist({ ...exData, [id]: cur });
   };
 
@@ -599,17 +793,26 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0c0a09', color: '#f5f5f4', padding: '16px', maxWidth: 480, margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+        <button
+          onClick={() => setManualOpen(true)}
+          style={{ flex: 1, fontSize: 13, fontWeight: 600, padding: '6px 4px', background: '#1d4ed8', border: '1px solid #1d4ed8', color: '#fff', borderRadius: 8, cursor: 'pointer' }}
+        >
+          📖 Manual
+        </button>
+        <button
+          onClick={handleForceWeekSwitch}
+          style={{ flex: 1, fontSize: 13, fontWeight: 600, padding: '6px 4px', background: '#1d4ed8', border: '1px solid #1d4ed8', color: '#fff', borderRadius: 8, cursor: 'pointer' }}
+        >
+          Switch to Week {week === 1 ? 2 : 1} →
+        </button>
+      </div>
+
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 22 }}>🏋️</span>
           <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Training Log — {profileName}</h1>
         </div>
-        <button
-          onClick={handleForceWeekSwitch}
-          style={{ fontSize: 11, color: '#57534e', background: 'none', border: '1px solid #292524', borderRadius: 6, padding: '4px 8px', cursor: 'pointer' }}
-        >
-          Switch to Week {week === 1 ? 2 : 1} →
-        </button>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ fontSize: 12, color: '#78716c' }}>
@@ -662,7 +865,7 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
             <ExerciseCard
               key={`${week}-${day}-${id}-${idx}`}
               id={id} ex={EXERCISES[id]} data={exData[id]}
-              onLog={handleLog} onNoteChange={handleNoteChange}
+              onLog={handleLog} onSaveNotes={handleSaveNotes} onEditWeight={handleEditWeight}
               skipped={skippedIds.includes(id)} onSkip={handleSkip}
             />
           ))}
@@ -693,6 +896,8 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
       >
         ↺ Reset all progress
       </button>
+
+      {manualOpen && <ManualModal onClose={() => setManualOpen(false)} />}
     </div>
   );
 }
