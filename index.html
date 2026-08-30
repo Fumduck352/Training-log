@@ -293,6 +293,12 @@ function ManualModal({ onClose }) {
             <div style={{ fontSize: 13, color: '#d6d3d1', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{sec.body}</div>
           </div>
         ))}
+        <button
+          onClick={onClose}
+          style={{ width: '100%', padding: 10, borderRadius: 8, background: '#1d4ed8', border: 'none', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+        >
+          Close
+        </button>
       </div>
     </div>
   );
