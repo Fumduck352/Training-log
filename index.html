@@ -145,9 +145,12 @@ function normalizeState(loaded) {
 function updateMetaAfterAction(meta, week, dayNum, coveredIds) {
   const daysForWeek = WEEKS[week];
   const dayComplete = daysForWeek[dayNum].exercises.every(exId => coveredIds.includes(exId));
-  const completedDays = { ...meta.completedDays, [week]: { ...meta.completedDays[week], [dayNum]: dayComplete } };
+  let completedDays = { ...meta.completedDays, [week]: { ...meta.completedDays[week], [dayNum]: dayComplete } };
   const allDaysComplete = Object.keys(daysForWeek).every(d => completedDays[week][d]);
   const nextWeek = allDaysComplete ? (week === 1 ? 2 : 1) : week;
+  if (allDaysComplete) {
+    completedDays = { ...completedDays, [week]: defaultCompletedDays() };
+  }
   return { ...meta, week: nextWeek, completedDays };
 }
 
@@ -780,7 +783,8 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
     const week = exData.__meta.week;
     const nextWeek = week === 1 ? 2 : 1;
     if (!window.confirm(`Switch to Week ${nextWeek} now?`)) return;
-    persist({ ...exData, __meta: { ...exData.__meta, week: nextWeek } });
+    const completedDays = { ...exData.__meta.completedDays, [week]: defaultCompletedDays() };
+    persist({ ...exData, __meta: { ...exData.__meta, week: nextWeek, completedDays } });
     setDay('1');
     setLoggedIds([]);
     setSkippedIds([]);
@@ -954,7 +958,29 @@ function ProfilePicker({ onSelect }) {
   );
 }
 
+// Polls the server for a new deploy (index.html's mtime) and reloads the
+// tab the moment it changes. People who leave this app open for weeks
+// otherwise never pick up a new version on their own.
+function useAutoReloadOnDeploy() {
+  useEffect(() => {
+    let knownVersion = null;
+    const check = async () => {
+      try {
+        const res = await fetch('/api/version');
+        if (!res.ok) return;
+        const { version } = await res.json();
+        if (knownVersion === null) { knownVersion = version; return; }
+        if (version !== knownVersion) window.location.reload();
+      } catch {}
+    };
+    check();
+    const interval = setInterval(check, 60000);
+    return () => clearInterval(interval);
+  }, []);
+}
+
 function App() {
+  useAutoReloadOnDeploy();
   const [profile, setProfile] = useState(() => {
     try { return JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY)); } catch { return null; }
   });

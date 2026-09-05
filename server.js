@@ -1,7 +1,10 @@
 require('dotenv').config();
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const { Pool } = require('pg');
+
+const INDEX_PATH = path.join(__dirname, 'index.html');
 
 const PORT = process.env.PORT || 3000;
 
@@ -73,6 +76,17 @@ async function getStorageKey(profileId) {
 
 const app = express();
 app.use(express.json());
+
+// ---- Version check ----
+// Long-lived tabs (people who never close the app) never pick up a new
+// deploy on their own. The client polls this and reloads itself the
+// moment index.html's mtime changes, instead of running stale JS forever.
+app.get('/api/version', (req, res) => {
+  fs.stat(INDEX_PATH, (err, stats) => {
+    if (err) return res.status(500).json({ error: 'stat failed' });
+    res.json({ version: stats.mtimeMs });
+  });
+});
 
 // ---- Profiles (fixed roster; Lee assigns spare slots to real people) ----
 
