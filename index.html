@@ -94,15 +94,13 @@ function defaultMeta() {
 }
 
 // One exercise's stored data object: weight (+ optional weightL/weightR),
-// history, a free-text notes field, and the state the Easy/Hard oscillation
-// logic needs (repTarget/repPhase/hardStreak).
+// history, a free-text notes field, and hardStreak (consecutive Hard
+// verdicts, used to trigger the weight drop).
 function defaultExerciseState(id, ex) {
   return {
     weight: ex.weight, weightL: ex.weightL, weightR: ex.weightR,
     history: [],
     notes: id === 'farmersCarry' ? '40m per set, plus shoulder shrugs after' : '',
-    repTarget: ex.repMax,
-    repPhase: 'push',
     hardStreak: 0,
   };
 }
@@ -116,17 +114,14 @@ function buildDefaultState() {
 }
 
 // Patches older saved state: adds any exercise ids that didn't exist yet
-// when it was saved, backfills the Easy/Hard oscillation fields onto older
-// exercise entries that predate them, and ensures __meta (week/completion
-// tracking) exists.
+// when it was saved, backfills hardStreak onto older exercise entries that
+// predate it, and ensures __meta (week/completion tracking) exists.
 function normalizeState(loaded) {
   const s = { ...loaded };
   Object.entries(EXERCISES).forEach(([id, ex]) => {
     if (!s[id]) {
       s[id] = defaultExerciseState(id, ex);
     } else {
-      if (s[id].repTarget === undefined) s[id].repTarget = ex.repMax;
-      if (s[id].repPhase === undefined) s[id].repPhase = 'push';
       if (s[id].hardStreak === undefined) s[id].hardStreak = 0;
     }
   });
@@ -154,9 +149,11 @@ function updateMetaAfterAction(meta, week, dayNum, coveredIds) {
   return { ...meta, week: nextWeek, completedDays };
 }
 
-// Resolves an overall Easy/Hard verdict for the session from any per-set
-// marks, falling back to whichever "Log Session" button was actually
-// pressed when no sets were marked (or the marks are a genuine tie).
+// Resolves an overall Easy/No Change/Hard verdict for the session from any
+// per-set Easy/Hard marks, falling back to whichever "Log Session" button
+// was actually pressed when no sets were marked (or the marks are a
+// genuine tie) — that fallback is how "No Change" reaches here, since
+// there's no per-set "No Change" mark.
 function resolveVerdict(marks, buttonPressed, numSets) {
   const touched = marks.filter(Boolean);
   if (touched.length === 0) return buttonPressed;
@@ -176,43 +173,27 @@ function resolveVerdict(marks, buttonPressed, numSets) {
 }
 
 // Decision engine: given the resolved verdict, returns the updated
-// weight/repTarget/repPhase/hardStreak for an exercise. noReps exercises
-// (Farmer's Carry, Suitcase Carry) skip all rep logic and only return
-// weight/hardStreak.
+// weight/hardStreak for an exercise. Reps always stay at the exercise's
+// normal target — only weight moves, the same way for noReps exercises
+// (Farmer's Carry, Suitcase Carry) and rep-based ones.
+// Easy: weight up one increment. No change: weight untouched. Hard: noted;
+// two Hard verdicts in a row drop the weight by one increment.
 function applyVerdict(ex, cur, verdict) {
-  const baseline = ex.repMax;
-  const floor = baseline - 2;
-  let { weight, repTarget, repPhase, hardStreak } = cur;
-
-  if (ex.noReps) {
-    if (verdict === 'easy') { weight += ex.increment; hardStreak = 0; }
-    else {
-      hardStreak += 1;
-      if (hardStreak >= 2) { weight -= ex.increment; hardStreak = 0; }
-    }
-    return { weight, hardStreak };
-  }
+  let { weight, hardStreak } = cur;
 
   if (verdict === 'easy') {
+    weight += ex.increment;
     hardStreak = 0;
-    if (repPhase === 'push') {
-      weight += ex.increment;
-      repTarget = Math.max(repTarget - 2, floor);
-      repPhase = 'recover';
-    } else {
-      repTarget = Math.min(repTarget + 2, baseline);
-      repPhase = 'push';
-    }
-  } else { // hard
-    repTarget = Math.max(repTarget - 2, floor);
+  } else if (verdict === 'hard') {
     hardStreak += 1;
     if (hardStreak >= 2) {
       weight -= ex.increment;
-      repTarget = baseline;   // reset on the weight drop
       hardStreak = 0;
     }
+  } else { // noChange
+    hardStreak = 0;
   }
-  return { weight, repTarget, repPhase, hardStreak };
+  return { weight: +Number(weight).toFixed(2), hardStreak };
 }
 
 const MANUAL_SECTIONS = [
@@ -226,7 +207,7 @@ Choose a Day (1–4) for the week you're in, then tap an exercise to open it and
     title: 'Daily Use — Logging vs. Feedback',
     body: `These are two separate things — don't confuse them:
 
-• Logging a session ("Log Session — Easy" or "Log Session — Hard") saves your reps and marks to this app and updates next session's target weight/reps. This is the only action that actually changes your saved data.
+• Logging a session (the "Easy" / "No Change" / "Hard" buttons under "Log Session") saves your reps and marks to this app and updates next session's target weight. This is the only action that actually changes your saved data.
 
 • "Copy summary to ask Claude" just copies text to your clipboard so you can paste it into a chat with Claude for feedback. It does not save anything and does not change any weights — you can copy a summary as many times as you like without it affecting your log.`,
   },
@@ -243,21 +224,17 @@ Weight and rep progress for a given exercise carries over no matter which week/d
   },
   {
     title: 'Effort Ratings',
-    body: `Each set has optional Easy / Hard toggles — leave them alone if you don't want to bother, and just tap one of the two "Log Session" buttons at the bottom based on how the whole session felt.
+    body: `Each set has optional Easy / Hard toggles — leave them alone if you don't want to bother, and just tap one of the three "Log Session" buttons at the bottom based on how the whole session felt.
 
-If you do mark individual sets, the app resolves an overall verdict from them instead of just using the button you pressed (a clear majority wins for 3-set exercises, the last set marked wins for 2-set exercises, and two Hard sets always counts as an overall Hard).
+If you do mark individual sets, the app resolves an overall verdict from them instead of just using the button you pressed (a clear majority wins for 3-set exercises, the last set marked wins for 2-set exercises, and two Hard sets always counts as an overall Hard). There's no per-set "No Change" mark — leave sets unmarked and tap the "No Change" button instead.
 
-Baseline & floor: reps never drop more than 2 below the exercise's normal top-of-range target, no matter how many Hard sessions in a row.
+Weight progression is simple: Easy adds one increment to the weight. No Change leaves the weight exactly where it is. A single Hard just gets noted — it takes two Hard sessions in a row to actually drop the weight by one increment (then the streak resets). Reps always stay at the exercise's normal target; the app doesn't move them around.
 
-Push/recover cycle: an Easy session alternates between two effects — first "weight up, reps down slightly," then on the next Easy, "reps recover back up" (with no weight change). That way you're never hit with a weight jump and a rep increase at the same time.
-
-Two Hard sessions in a row drop the weight by one increment and reset reps back to the full target — a fresh start at the lower weight.
-
-Farmer's Carry and Suitcase Carry are weight-only (no reps to track): an Easy session adds one increment; two Hard sessions in a row remove one increment.`,
+Farmer's Carry and Suitcase Carry are weight-only (no reps to track) and follow the same Easy / No Change / Hard rule.`,
   },
   {
     title: 'Elbow / Injury Notes',
-    body: `Exercises flagged with ⚠ elbow (Cable Lateral Raise, EZ Bar Curl, Close Grip Bench, Preacher Curl, Hammer Curl) are marked because of the right tennis elbow — go carefully and back off if it flares up.
+    body: `Exercises flagged with ⚠ elbow (Cable Lateral Raise, EZ Bar Curl, Close Grip Bench, Preacher Curl, Hammer Curl) are marked because of Lee's right tennis elbow — go carefully and back off if it flares up. This only shows on Lee's profile; other profiles don't see the elbow warnings.
 
 Cable Lateral Raise is tracked separately per side. Only the left side auto-adjusts from your Easy/Hard sessions — the right side never changes weight on its own. If the right side needs a change, use the ✏️ pencil next to the weight to edit it manually.`,
   },
@@ -334,7 +311,8 @@ function CopySummaryButton({ text, label }) {
   );
 }
 
-function ExerciseCard({ id, ex, data, onLog, onSaveNotes, onEditWeight, skipped, onSkip }) {
+function ExerciseCard({ id, ex, data, onLog, onSaveNotes, onEditWeight, skipped, onSkip, profileId }) {
+  const showElbowCaution = ex.caution && profileId === 'lee';
   const [open, setOpen] = useState(false);
   const [sets, setSets] = useState(Array.from({ length: ex.sets }, () => ({ reps: ex.repMax || '' })));
   const [marks, setMarks] = useState(Array.from({ length: ex.sets }, () => null));
@@ -385,7 +363,7 @@ function ExerciseCard({ id, ex, data, onLog, onSaveNotes, onEditWeight, skipped,
     setEditingWeight(false);
   };
 
-  const markLabel = m => (m === 'easy' ? 'Easy' : m === 'hard' ? 'Hard' : '');
+  const markLabel = m => (m === 'easy' ? 'Easy' : m === 'hard' ? 'Hard' : m === 'noChange' ? 'No Change' : '');
 
   const summaryText = (() => {
     const wLabel = ex.weightL !== undefined ? `L ${data.weightL}kg / R ${data.weightR}kg` : `${data.weight}${ex.unit}`;
@@ -396,8 +374,8 @@ function ExerciseCard({ id, ex, data, onLog, onSaveNotes, onEditWeight, skipped,
     let text =
       `[Training log — ${ex.name}]\n` +
       `Weight: ${wLabel} | Sets: ${setsDesc} | Target: ${ex.noReps ? 'carries' : `${ex.repMin}–${ex.repMax} reps`}\n` +
-      `Session verdict: ${verdict ? markLabel(verdict) : 'N/A'}\n` +
-      `Right elbow caution: ${ex.caution ? 'YES' : 'no'}`;
+      `Session verdict: ${verdict ? markLabel(verdict) : 'N/A'}` +
+      (showElbowCaution ? `\nRight elbow caution: YES` : '');
     if (note.trim()) text += `\nMy note: ${note}`;
     return text + `\n\nCan you give me a quick read on this and what to do next time?`;
   })();
@@ -416,7 +394,7 @@ function ExerciseCard({ id, ex, data, onLog, onSaveNotes, onEditWeight, skipped,
             {skipped && (
               <span style={{ fontSize: 11, color: '#57534e' }}>skipped today</span>
             )}
-            {ex.caution && (
+            {showElbowCaution && (
               <span style={{ fontSize: 11, background: '#431407', color: '#fb923c', padding: '1px 6px', borderRadius: 4, border: '1px solid #7c2d12', flexShrink: 0 }}>
                 ⚠ elbow
               </span>
@@ -482,7 +460,7 @@ function ExerciseCard({ id, ex, data, onLog, onSaveNotes, onEditWeight, skipped,
 
       {open && !skipped && (
         <div style={{ borderTop: '1px solid #292524', padding: '12px 14px' }}>
-          {ex.note && (
+          {ex.note && (!ex.caution || showElbowCaution) && (
             <div style={{ fontSize: 12, color: '#fbbf24', background: 'rgba(120,53,15,0.3)', border: '1px solid rgba(161,98,7,0.4)', borderRadius: 8, padding: '7px 10px', marginBottom: 10 }}>
               ℹ {ex.note}
             </div>
@@ -528,18 +506,25 @@ function ExerciseCard({ id, ex, data, onLog, onSaveNotes, onEditWeight, skipped,
             />
           </div>
 
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <div style={{ fontSize: 11, color: '#78716c', marginTop: 8, marginBottom: 4 }}>Log Session</div>
+          <div style={{ display: 'flex', gap: 6 }}>
             <button
               onClick={() => doLog('easy')}
-              style={{ flex: 1, padding: 10, borderRadius: 8, background: '#166534', border: 'none', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              style={{ flex: 1, padding: '10px 4px', borderRadius: 8, background: '#166534', border: 'none', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
             >
-              Log Session — Easy
+              Easy
+            </button>
+            <button
+              onClick={() => doLog('noChange')}
+              style={{ flex: 1, padding: '10px 4px', borderRadius: 8, background: '#44403c', border: 'none', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+            >
+              No Change
             </button>
             <button
               onClick={() => doLog('hard')}
-              style={{ flex: 1, padding: 10, borderRadius: 8, background: '#991b1b', border: 'none', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              style={{ flex: 1, padding: '10px 4px', borderRadius: 8, background: '#991b1b', border: 'none', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
             >
-              Log Session — Hard
+              Hard
             </button>
           </div>
 
@@ -572,7 +557,7 @@ function ExerciseCard({ id, ex, data, onLog, onSaveNotes, onEditWeight, skipped,
   );
 }
 
-function SessionSummary({ day, exData, loggedIds, skippedIds, onDone }) {
+function SessionSummary({ day, exData, loggedIds, skippedIds, onDone, profileId }) {
   const increases = loggedIds.map(id => {
     const hist = exData[id].history;
     if (hist.length < 2) return null;
@@ -594,7 +579,7 @@ function SessionSummary({ day, exData, loggedIds, skippedIds, onDone }) {
     return `[Training log — Day ${day} session complete]\n\n` +
       `Exercises logged:\n${lines}\n\n` +
       `Weight increases this session:\n${increases.length ? increases.map(i => `• ${i}`).join('\n') : '• None'}\n\n` +
-      `Can you give me a quick review, flag anything for my right elbow (tennis elbow), and give one priority focus for next time?`;
+      `Can you give me a quick review${profileId === 'lee' ? ', flag anything for my right elbow (tennis elbow),' : ','} and give one priority focus for next time?`;
   })();
 
   return (
@@ -709,17 +694,13 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
     let next = { ...cur, history: [...cur.history], notes: note };
 
     if (ex.weightL !== undefined) {
-      const result = applyVerdict(ex, { weight: cur.weightL, repTarget: cur.repTarget, repPhase: cur.repPhase, hardStreak: cur.hardStreak }, verdict);
-      next.weightL = +Number(result.weight).toFixed(2);
-      if (result.repTarget !== undefined) next.repTarget = result.repTarget;
-      if (result.repPhase !== undefined) next.repPhase = result.repPhase;
+      const result = applyVerdict(ex, { weight: cur.weightL, hardStreak: cur.hardStreak }, verdict);
+      next.weightL = result.weight;
       next.hardStreak = result.hardStreak;
       next.history.push({ date: today, weightLabel: `L${next.weightL}/R${cur.weightR}`, sets: historySets });
     } else {
       const result = applyVerdict(ex, cur, verdict);
-      next.weight = +Number(result.weight).toFixed(2);
-      if (result.repTarget !== undefined) next.repTarget = result.repTarget;
-      if (result.repPhase !== undefined) next.repPhase = result.repPhase;
+      next.weight = result.weight;
       next.hardStreak = result.hardStreak;
       next.history.push({ date: today, weightLabel: `${next.weight}${ex.unit}`, sets: historySets });
     }
@@ -877,6 +858,7 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
               id={id} ex={EXERCISES[id]} data={exData[id]}
               onLog={handleLog} onSaveNotes={handleSaveNotes} onEditWeight={handleEditWeight}
               skipped={skippedIds.includes(id)} onSkip={handleSkip}
+              profileId={profileId}
             />
           ))}
 
@@ -895,7 +877,7 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
           )}
 
           {allLogged && (
-            <SessionSummary day={day} exData={exData} loggedIds={loggedIds} skippedIds={skippedIds} onDone={() => setSessionDone(true)} />
+            <SessionSummary day={day} exData={exData} loggedIds={loggedIds} skippedIds={skippedIds} onDone={() => setSessionDone(true)} profileId={profileId} />
           )}
         </>
       )}
