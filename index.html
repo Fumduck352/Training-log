@@ -220,6 +220,8 @@ Week 2 — Back & Chest / Arms & Shoulders / Legs / Conditioning
 
 Once all 4 days in a week are marked complete (logged or skipped), the app automatically flips you to the other week and back to Day 1.
 
+You can also jump to the other week early with "Switch to Week X →" — your progress on the days you've already done in the week you're leaving is kept, so if you switch back later it still shows correctly.
+
 Weight and rep progress for a given exercise carries over no matter which week/day it's under — e.g. Rope Pressdown shows up in both Week 1 Push and Week 1 Accessory, and shares one weight between them.`,
   },
   {
@@ -764,8 +766,7 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
     const week = exData.__meta.week;
     const nextWeek = week === 1 ? 2 : 1;
     if (!window.confirm(`Switch to Week ${nextWeek} now?`)) return;
-    const completedDays = { ...exData.__meta.completedDays, [week]: defaultCompletedDays() };
-    persist({ ...exData, __meta: { ...exData.__meta, week: nextWeek, completedDays } });
+    persist({ ...exData, __meta: { ...exData.__meta, week: nextWeek } });
     setDay('1');
     setLoggedIds([]);
     setSkippedIds([]);
