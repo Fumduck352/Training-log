@@ -18,16 +18,30 @@
 
 const { useState, useEffect } = React;
 
+class StateNotFoundError extends Error {
+  constructor() { super('no saved state for this profile'); this.name = 'StateNotFoundError'; }
+}
+
 // ---- API-backed replacement for the artifact-only window.storage API ----
 // Backed by /api/state (Postgres via the Express server), scoped per profile
 // so each person's data is independent, visible from their phone, the
 // browser, and Claude reading the API directly.
 const storage = {
   async get(profileId) {
-    const res = await fetch(`/api/state?profile=${encodeURIComponent(profileId)}`);
-    if (!res.ok) throw new Error('failed to fetch state');
-    const data = await res.json();
-    if (data.value === null || data.value === undefined) throw new Error('not found');
+    let res;
+    try {
+      res = await fetch(`/api/state?profile=${encodeURIComponent(profileId)}`);
+    } catch (err) {
+      throw new Error('network error');
+    }
+    if (!res.ok) throw new Error(`server error ${res.status}`);
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error('bad JSON response');
+    }
+    if (data.value === null || data.value === undefined) throw new StateNotFoundError();
     return { value: JSON.stringify(data.value) };
   },
   async set(profileId, value) {
@@ -658,25 +672,34 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
   const [day, setDay] = useState('1');
   const [exData, setExData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadKey, setLoadKey] = useState(0);
   const [loggedIds, setLoggedIds] = useState([]);
   const [skippedIds, setSkippedIds] = useState([]);
   const [sessionDone, setSessionDone] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
 
   useEffect(() => {
+    setLoadError(false);
     (async () => {
       let s;
       try {
         const r = await storage.get(profileId);
         s = normalizeState(JSON.parse(r.value));
-      } catch {
-        s = normalizeState(buildDefaultState());
+      } catch (err) {
+        if (err instanceof StateNotFoundError) {
+          s = normalizeState(buildDefaultState());
+        } else {
+          setLoadError(true);
+          setLoading(false);
+          return;
+        }
       }
       setExData(s);
       try { await storage.set(profileId, JSON.stringify(s)); } catch {}
       setLoading(false);
     })();
-  }, [profileId]);
+  }, [profileId, loadKey]);
 
   useEffect(() => { setLoggedIds([]); setSkippedIds([]); setSessionDone(false); }, [day]);
 
@@ -772,6 +795,18 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
   const daysForWeek = exData && WEEKS[week];
   const allLogged = exData && daysForWeek[day].exercises.every(id => loggedIds.includes(id) || skippedIds.includes(id));
   const weekAllComplete = exData && Object.keys(daysForWeek).every(d => exData.__meta.completedDays[week][d]);
+
+  if (loadError) return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0c0a09', color: '#f5f5f4', fontFamily: 'system-ui', padding: 24, textAlign: 'center' }}>
+      <div style={{ fontSize: 14, color: '#f87171', marginBottom: 12 }}>Couldn't load your data — nothing was changed.</div>
+      <button
+        onClick={() => { setLoading(true); setLoadKey(k => k + 1); }}
+        style={{ padding: '10px 20px', borderRadius: 8, background: '#1c1917', border: '1px solid #292524', color: '#f5f5f4', fontSize: 14, cursor: 'pointer' }}
+      >
+        Try again
+      </button>
+    </div>
+  );
 
   if (loading) return (
     <div style={{ minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0c0a09', color: '#78716c', fontFamily: 'system-ui' }}>
