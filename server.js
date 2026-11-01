@@ -163,8 +163,6 @@ app.patch('/api/feedback/:id/read', async (req, res) => {
   res.json(result.rows[0]);
 });
 
-app.use(express.static(__dirname));
-
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
