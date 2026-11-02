@@ -99,6 +99,246 @@ const WEEKS = {
   },
 };
 
+// ---- Monthly Rotation programme (Packs A-D) ----
+// A second, independent programme living alongside the original "classic"
+// one above. Toggled via exData.__programme ('classic' | 'rotation');
+// classic's own data (EXERCISES/WEEKS/__meta) is never touched by any of
+// this. New exercise ids here are only reused from EXERCISES when the name
+// is an unambiguous exact match (e.g. "Flat bench press" -> flatBench);
+// everything else gets its own id and its own starting weight so no
+// history is ever merged across genuinely different movements.
+const ROTATION_EXERCISES = {
+  barbellOverheadPress:  { name: 'Barbell Overhead Press',  sets: 3, repMin: 8, repMax: 10, weight: 30, unit: 'kg', increment: 2.5, needsWeight: true },
+  flatDumbbellFly:       { name: 'Flat Dumbbell Fly',       sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1,   needsWeight: true },
+  dumbbellLateralRaise:  { name: 'Dumbbell Lateral Raise',  sets: 3, repMin: 8, repMax: 10, weight: 8,  unit: 'kg', increment: 1,   needsWeight: true },
+  machineShoulderPress:  { name: 'Machine Shoulder Press',  sets: 3, repMin: 8, repMax: 10, weight: 20, unit: 'kg', increment: 2.5, needsWeight: true },
+  flatCableCrossover:    { name: 'Flat Cable Crossover',    sets: 3, repMin: 8, repMax: 10, weight: 15, unit: 'kg', increment: 1,   needsWeight: true },
+  cableReverseFly:       { name: 'Cable Reverse Fly',       sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1,   needsWeight: true },
+  vBarPressdown:         { name: 'V-Bar Pressdown',         sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
+  flatDumbbellPress:     { name: 'Flat Dumbbell Press',     sets: 3, repMin: 8, repMax: 10, weight: 20, unit: 'kg', increment: 2,   needsWeight: true },
+  inclineCableFly:       { name: 'Incline Cable Fly',       sets: 3, repMin: 8, repMax: 10, weight: 12, unit: 'kg', increment: 1,   needsWeight: true },
+  straightBarPressdown:  { name: 'Straight-Bar Pressdown',  sets: 3, repMin: 8, repMax: 10, weight: 45, unit: 'kg', increment: 2.5, needsWeight: true },
+  inclineSmithPress:     { name: 'Incline Smith-Machine Press', sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
+  declineCableFly:       { name: 'Decline Cable Fly',       sets: 3, repMin: 8, repMax: 10, weight: 12, unit: 'kg', increment: 1,   needsWeight: true },
+  dumbbellReverseFly:    { name: 'Dumbbell Reverse Fly',    sets: 3, repMin: 8, repMax: 10, weight: 8,  unit: 'kg', increment: 1,   needsWeight: true },
+  splitRopePressdown:    { name: 'Split-Rope Pressdown',    sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
+  inclineDumbbellFly:    { name: 'Incline Dumbbell Fly',    sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1,   needsWeight: true },
+  declineCableCrossover: { name: 'Decline Cable Crossover', sets: 3, repMin: 8, repMax: 10, weight: 15, unit: 'kg', increment: 1,   needsWeight: true },
+
+  horizontalMachineRow:  { name: 'Horizontal Machine Row',  sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
+  straightArmPulldown:   { name: 'Straight-Arm Pulldown',   sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 2,   needsWeight: true },
+  closeGripEzBarCurl:    { name: 'Close-Grip EZ-Bar Curl',  sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 2.5, needsWeight: true },
+  frontPlank:            { name: 'Front Plank', sets: 2, repMin: 0, repMax: 0, weight: 30, unit: 'sec', increment: 10, noReps: true, needsWeight: true, note: 'Weight field tracks seconds held.' },
+  triBarLatPulldown:     { name: 'Tri-Bar Lat Pulldown',    sets: 3, repMin: 8, repMax: 10, weight: 55, unit: 'kg', increment: 2.5, needsWeight: true },
+  dumbbellPullover:      { name: 'Dumbbell Pullover',       sets: 3, repMin: 8, repMax: 10, weight: 14, unit: 'kg', increment: 1,   needsWeight: true },
+  reverseEzBarCurl:      { name: 'Reverse EZ-Bar Curl',     sets: 3, repMin: 8, repMax: 10, weight: 20, unit: 'kg', increment: 2.5, needsWeight: true },
+  hangingLegRaise:       { name: 'Hanging Leg Raise',       sets: 2, repMin: 8, repMax: 12, weight: 0,  unit: 'kg', increment: 2.5, needsWeight: true },
+  underhandLatPulldown:  { name: 'Underhand Lat Pulldown',  sets: 3, repMin: 8, repMax: 10, weight: 55, unit: 'kg', increment: 2.5, needsWeight: true },
+  barbellCurl:           { name: 'Barbell Curl',            sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 2.5, needsWeight: true },
+  cableHammerCurl:       { name: 'Cable Hammer Curl',       sets: 3, repMin: 8, repMax: 10, weight: 20, unit: 'kg', increment: 1,   needsWeight: true },
+  russianTwist:          { name: 'Russian Twist', sets: 2, repMin: 12, repMax: 15, weight: 0, unit: 'kg', increment: 2.5, needsWeight: true, note: 'Bodyweight to start — add a plate once it’s easy.' },
+  shoulderWidthLatPulldown: { name: 'Shoulder-Width Lat Pulldown', sets: 3, repMin: 8, repMax: 10, weight: 55, unit: 'kg', increment: 2.5, needsWeight: true },
+  wideGripCableRow:      { name: 'Wide-Grip Cable Row',     sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
+  spiderCurl:            { name: 'Spider Curl',             sets: 3, repMin: 8, repMax: 10, weight: 18, unit: 'kg', increment: 1,   needsWeight: true },
+  zottmanCurl:           { name: 'Zottman Curl',            sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1,   needsWeight: true },
+  pendlayRow:            { name: 'Pendlay Row',             sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
+  underhandEzBarRow:     { name: 'Underhand EZ-Bar Bent-Over Row', sets: 3, repMin: 8, repMax: 10, weight: 35, unit: 'kg', increment: 2.5, needsWeight: true },
+  inclineDumbbellCurl:   { name: 'Incline Dumbbell Curl',   sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1,   needsWeight: true },
+  stabilityBallCrunch:   { name: 'Stability-Ball Crunch', sets: 2, repMin: 12, repMax: 15, weight: 0, unit: 'kg', increment: 2.5, needsWeight: true, note: 'Bodyweight to start — add a plate once it’s easy.' },
+  verticalGripMachineRow:{ name: 'Vertical-Grip Machine Row', sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
+
+  legCurlMachine:        { name: 'Leg Curl',                sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
+  reverseLunge:          { name: 'Reverse Lunge',           sets: 3, repMin: 8, repMax: 10, weight: 14, unit: 'kg DBs', increment: 2, needsWeight: true },
+  backSquat:             { name: 'Back Squat',               sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
+  legPressCalfRaise:     { name: 'Leg-Press Calf Raise',    sets: 2, repMin: 12, repMax: 15, weight: 60, unit: 'kg', increment: 5, needsWeight: true },
+  hipThrust:             { name: 'Hip Thrust',               sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
+  legExtension:          { name: 'Leg Extension',           sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
+  forwardLunge:          { name: 'Forward Lunge',           sets: 3, repMin: 8, repMax: 10, weight: 14, unit: 'kg DBs', increment: 2, needsWeight: true },
+  dumbbellCalfRaise:     { name: 'Dumbbell Calf Raise',     sets: 2, repMin: 12, repMax: 15, weight: 16, unit: 'kg', increment: 2, needsWeight: true },
+  cyclistSquat:          { name: 'Cyclist Squat',            sets: 3, repMin: 8, repMax: 10, weight: 30, unit: 'kg', increment: 2.5, needsWeight: true },
+
+  rowingMachine:         { name: 'Rowing Machine', sets: 1, repMin: 0, repMax: 0, weight: 10, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.' },
+  crossTrainer:          { name: 'Cross Trainer',  sets: 1, repMin: 0, repMax: 0, weight: 10, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.' },
+  inclineTreadmillWalk:  { name: 'Incline Treadmill Walk', sets: 1, repMin: 0, repMax: 0, weight: 12, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.' },
+  uprightBicycle:        { name: 'Upright Bicycle', sets: 1, repMin: 0, repMax: 0, weight: 12, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.' },
+  stepper:               { name: 'Stepper',         sets: 1, repMin: 0, repMax: 0, weight: 10, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.' },
+  inclineHammerCurl:     { name: 'Incline Hammer Curl', sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1, needsWeight: true },
+  dumbbellSupinationCurl:{ name: 'Dumbbell Supination Curl', sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1, needsWeight: true },
+  singleArmOverheadTricepsExtension: { name: 'Single-Arm Overhead Triceps Extension', sets: 3, repMin: 8, repMax: 10, weight: 8, unit: 'kg', increment: 1, needsWeight: true },
+  straightBarCurl:       { name: 'Straight-Bar Curl', sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 2.5, needsWeight: true },
+  overheadRopeExtension: { name: 'Overhead Rope Extension', sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 1, needsWeight: true },
+};
+
+// Merged lookup table used everywhere an exercise id needs resolving,
+// regardless of which programme it came from.
+const ALL_EXERCISES = { ...EXERCISES, ...ROTATION_EXERCISES };
+
+const DAY_LABELS = { '1': 'Push', '2': 'Pull', '3': 'Legs', '4': 'General Conditioning' };
+
+// Packs A-D exactly as agreed in the design doc. Each pack has 8 complete
+// days (Week 1 and Week 2, Days 1-4). Ids already in EXERCISES are reused
+// deliberately (unambiguous exact-name matches); every other id is new.
+const ROTATION_PACKS = {
+  A: {
+    1: {
+      '1': { exercises: ['flatBench', 'barbellOverheadPress', 'flatDumbbellFly', 'dumbbellLateralRaise', 'ropePressdown'] },
+      '2': { exercises: ['latPulldown', 'horizontalMachineRow', 'straightArmPulldown', 'closeGripEzBarCurl', 'hammerCurl', 'frontPlank'] },
+      '3': { exercises: ['legPress', 'rdl', 'legCurlMachine', 'reverseLunge', 'calfRaises'] },
+      '4': { exercises: ['rowingMachine', 'preacherCurl', 'cableHammerCurl', 'straightBarPressdown', 'overheadRopeExtension'] },
+    },
+    2: {
+      '1': { exercises: ['inclinePress', 'machineShoulderPress', 'lowHighFly', 'cableReverseFly', 'vBarPressdown'] },
+      '2': { exercises: ['triBarLatPulldown', 'singleArmRow', 'dumbbellPullover', 'preacherCurl', 'reverseEzBarCurl', 'hangingLegRaise'] },
+      '3': { exercises: ['backSquat', 'hipThrust', 'legCurlMachine', 'forwardLunge', 'legPressCalfRaise'] },
+      '4': { exercises: ['crossTrainer', 'barbellCurl', 'inclineHammerCurl', 'splitRopePressdown', 'closeGripBench'] },
+    },
+  },
+  B: {
+    1: {
+      '1': { exercises: ['flatDumbbellPress', 'shoulderPress', 'inclineCableFly', 'cableLateral', 'straightBarPressdown'] },
+      '2': { exercises: ['underhandLatPulldown', 'singleArmRow', 'straightArmPulldown', 'barbellCurl', 'cableHammerCurl', 'russianTwist'] },
+      '3': { exercises: ['backSquat', 'legCurlMachine', 'legExtension', 'forwardLunge', 'dumbbellCalfRaise'] },
+      '4': { exercises: ['inclineTreadmillWalk', 'ezBarCurl', 'hammerCurl', 'ropePressdown', 'singleArmOverheadTricepsExtension'] },
+    },
+    2: {
+      '1': { exercises: ['inclineSmithPress', 'barbellOverheadPress', 'declineCableFly', 'dumbbellReverseFly', 'splitRopePressdown'] },
+      '2': { exercises: ['shoulderWidthLatPulldown', 'wideGripCableRow', 'dumbbellPullover', 'spiderCurl', 'zottmanCurl', 'frontPlank'] },
+      '3': { exercises: ['legPress', 'rdl', 'legCurlMachine', 'reverseLunge', 'calfRaises'] },
+      '4': { exercises: ['uprightBicycle', 'preacherCurl', 'dumbbellSupinationCurl', 'vBarPressdown', 'closeGripBench'] },
+    },
+  },
+  C: {
+    1: {
+      '1': { exercises: ['inclinePress', 'machineShoulderPress', 'flatCableCrossover', 'dumbbellLateralRaise', 'overheadRopeExtension'] },
+      '2': { exercises: ['triBarLatPulldown', 'pendlayRow', 'straightArmPulldown', 'preacherCurl', 'hammerCurl', 'hangingLegRaise'] },
+      '3': { exercises: ['cyclistSquat', 'hipThrust', 'legCurlMachine', 'reverseLunge', 'legPressCalfRaise'] },
+      '4': { exercises: ['stepper', 'straightBarCurl', 'cableHammerCurl', 'ropePressdown', 'closeGripBench'] },
+    },
+    2: {
+      '1': { exercises: ['flatBench', 'shoulderPress', 'inclineDumbbellFly', 'cableReverseFly', 'vBarPressdown'] },
+      '2': { exercises: ['latPulldown', 'underhandEzBarRow', 'straightArmPulldown', 'inclineDumbbellCurl', 'reverseEzBarCurl', 'stabilityBallCrunch'] },
+      '3': { exercises: ['legPress', 'rdl', 'legExtension', 'forwardLunge', 'dumbbellCalfRaise'] },
+      '4': { exercises: ['rowingMachine', 'ezBarCurl', 'dumbbellSupinationCurl', 'straightBarPressdown', 'singleArmOverheadTricepsExtension'] },
+    },
+  },
+  D: {
+    1: {
+      '1': { exercises: ['inclineSmithPress', 'barbellOverheadPress', 'declineCableCrossover', 'dumbbellReverseFly', 'splitRopePressdown'] },
+      '2': { exercises: ['shoulderWidthLatPulldown', 'verticalGripMachineRow', 'dumbbellPullover', 'spiderCurl', 'cableHammerCurl', 'frontPlank'] },
+      '3': { exercises: ['backSquat', 'legCurlMachine', 'legExtension', 'reverseLunge', 'calfRaises'] },
+      '4': { exercises: ['crossTrainer', 'preacherCurl', 'zottmanCurl', 'vBarPressdown', 'closeGripBench'] },
+    },
+    2: {
+      '1': { exercises: ['flatDumbbellPress', 'shoulderPress', 'flatDumbbellFly', 'cableLateral', 'ropePressdown'] },
+      '2': { exercises: ['underhandLatPulldown', 'horizontalMachineRow', 'straightArmPulldown', 'closeGripEzBarCurl', 'hammerCurl', 'hangingLegRaise'] },
+      '3': { exercises: ['legPress', 'hipThrust', 'legCurlMachine', 'forwardLunge', 'legPressCalfRaise'] },
+      '4': { exercises: ['inclineTreadmillWalk', 'barbellCurl', 'inclineDumbbellCurl', 'straightBarPressdown', 'overheadRopeExtension'] },
+    },
+  },
+};
+
+const ROTATION_PACK_IDS = ['A', 'B', 'C', 'D'];
+// Pack A is the active pack starting this calendar month; the sequence
+// then advances A->B->C->D->A on the first Monday of every month after.
+const ROTATION_CONFIG = { startYear: 2026, startMonth: 11 };
+
+// Reads "now" as Europe/London calendar fields, without trusting the
+// device's own timezone — the spec requires Europe/London as the
+// authority, not whatever timezone the phone happens to be set to.
+function getLondonDateParts(date) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
+  }).formatToParts(date);
+  const get = t => parts.find(p => p.type === t).value;
+  const weekdayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return { year: Number(get('year')), month: Number(get('month')), day: Number(get('day')), weekday: weekdayMap[get('weekday')] };
+}
+
+// Day-of-month of the first Monday of the given Europe/London calendar
+// month. Uses a safe midday UTC instant so DST transitions near midnight
+// never shift which calendar day we land on.
+function firstMondayDayOfMonth(year, month1based) {
+  const noonUtc = new Date(Date.UTC(year, month1based - 1, 1, 12, 0, 0));
+  const { weekday } = getLondonDateParts(noonUtc);
+  const offset = (1 - weekday + 7) % 7;
+  return 1 + offset;
+}
+
+// Which pack (A-D) is active right now. Counts first-Monday boundaries
+// crossed since the configured start month, modulo 4. This is computed
+// fresh on read, never recalculated for a day that's already been
+// completed (see daySnapshots) — history keeps the pack it was actually
+// done under.
+function resolveActivePack(now) {
+  const { year, month, day } = getLondonDateParts(now || new Date());
+  const firstMonday = firstMondayDayOfMonth(year, month);
+  let effYear = year, effMonth = month;
+  if (day < firstMonday) {
+    effMonth -= 1;
+    if (effMonth === 0) { effMonth = 12; effYear -= 1; }
+  }
+  const monthsElapsed = (effYear - ROTATION_CONFIG.startYear) * 12 + (effMonth - ROTATION_CONFIG.startMonth);
+  const idx = ((monthsElapsed % 4) + 4) % 4;
+  return ROTATION_PACK_IDS[idx];
+}
+
+function defaultRotationDaySnapshots() {
+  return { 1: { '1': null, '2': null, '3': null, '4': null }, 2: { '1': null, '2': null, '3': null, '4': null } };
+}
+
+function defaultRotationMeta() {
+  return { week: 1, completedDays: { 1: defaultCompletedDays(), 2: defaultCompletedDays() }, daySnapshots: defaultRotationDaySnapshots() };
+}
+
+// Builds a WEEKS[week]-shaped object (label + ordered exercise ids per
+// day) for the rotation programme, so the rest of the app's render code
+// can treat classic and rotation identically. A day that's already been
+// completed keeps the exact pack/exercise list it was completed under,
+// even after the month rolls over to a new pack.
+function getRotationDaysForWeek(rotationMeta, activePackId, week) {
+  const result = {};
+  Object.keys(DAY_LABELS).forEach(d => {
+    const snap = rotationMeta.daySnapshots[week][d];
+    const exercises = snap ? snap.exercises : ROTATION_PACKS[activePackId][week][d].exercises;
+    result[d] = { label: DAY_LABELS[d], exercises, packId: snap ? snap.packId : activePackId };
+  });
+  return result;
+}
+
+// Rotation equivalent of updateMetaAfterAction. Locks in a snapshot (pack
+// id + exact exercise list) the moment a day first becomes complete, so a
+// later pack change never rewrites what that day actually was. If a
+// completed day is un-done again (e.g. an exercise un-skipped), the
+// snapshot is released so it goes back to tracking the live pack.
+function updateRotationMetaAfterAction(rotationMeta, week, dayNum, coveredIds, activePackId, dayExerciseIds) {
+  const dayComplete = dayExerciseIds.every(exId => coveredIds.includes(exId));
+  const completedDays = { ...rotationMeta.completedDays, [week]: { ...rotationMeta.completedDays[week], [dayNum]: dayComplete } };
+  let daySnapshots = rotationMeta.daySnapshots;
+  const existingSnap = daySnapshots[week][dayNum];
+  if (dayComplete && !existingSnap) {
+    daySnapshots = { ...daySnapshots, [week]: { ...daySnapshots[week], [dayNum]: { packId: activePackId, exercises: dayExerciseIds } } };
+  } else if (!dayComplete && existingSnap) {
+    daySnapshots = { ...daySnapshots, [week]: { ...daySnapshots[week], [dayNum]: null } };
+  }
+  return { ...rotationMeta, completedDays, daySnapshots };
+}
+
+// All exercise ids that belong to one programme's world — every id any
+// pack references for rotation (including the handful of ids shared with
+// classic), or just EXERCISES' own keys for classic. Used to scope
+// "Reset" so it never touches the other programme's data.
+function getProgrammeExerciseIds(isRotation) {
+  if (!isRotation) return Object.keys(EXERCISES);
+  const ids = new Set();
+  Object.values(ROTATION_PACKS).forEach(pack => {
+    Object.values(pack).forEach(week => {
+      Object.values(week).forEach(dayDef => dayDef.exercises.forEach(id => ids.add(id)));
+    });
+  });
+  return [...ids];
+}
+
+
 function defaultCompletedDays() {
   return { '1': false, '2': false, '3': false, '4': false };
 }
@@ -108,35 +348,40 @@ function defaultMeta() {
 }
 
 // One exercise's stored data object: weight (+ optional weightL/weightR),
-// history, a free-text notes field, and hardStreak (consecutive Hard
-// verdicts, used to trigger the weight drop).
+// history, a free-text notes field, hardStreak (consecutive Hard
+// verdicts, used to trigger the weight drop), and needsWeight (true for a
+// brand-new rotation exercise until its starting weight is set via the
+// pencil edit).
 function defaultExerciseState(id, ex) {
   return {
     weight: ex.weight, weightL: ex.weightL, weightR: ex.weightR,
     history: [],
     notes: id === 'farmersCarry' ? '40m per set, plus shoulder shrugs after' : '',
     hardStreak: 0,
+    needsWeight: !!ex.needsWeight,
   };
 }
 
 function buildDefaultState() {
   const s = {};
-  Object.entries(EXERCISES).forEach(([id, ex]) => {
+  Object.entries(ALL_EXERCISES).forEach(([id, ex]) => {
     s[id] = defaultExerciseState(id, ex);
   });
   return s;
 }
 
 // Patches older saved state: adds any exercise ids that didn't exist yet
-// when it was saved, backfills hardStreak onto older exercise entries that
-// predate it, and ensures __meta (week/completion tracking) exists.
+// when it was saved (classic or rotation), backfills hardStreak onto
+// older exercise entries that predate it, and ensures __meta (classic
+// week/completion tracking), __programme and __rotation all exist.
 function normalizeState(loaded) {
   const s = { ...loaded };
-  Object.entries(EXERCISES).forEach(([id, ex]) => {
+  Object.entries(ALL_EXERCISES).forEach(([id, ex]) => {
     if (!s[id]) {
       s[id] = defaultExerciseState(id, ex);
     } else {
       if (s[id].hardStreak === undefined) s[id].hardStreak = 0;
+      if (s[id].needsWeight === undefined) s[id].needsWeight = false;
     }
   });
   if (!s.__meta) {
@@ -144,6 +389,21 @@ function normalizeState(loaded) {
   } else {
     s.__meta = { week: s.__meta.week === 2 ? 2 : 1, completedDays: { ...s.__meta.completedDays } };
     [1, 2].forEach(w => { if (!s.__meta.completedDays[w]) s.__meta.completedDays[w] = defaultCompletedDays(); });
+  }
+  if (!s.__programme) s.__programme = 'classic';
+  if (!s.__rotation) {
+    s.__rotation = defaultRotationMeta();
+  } else {
+    const r = s.__rotation;
+    s.__rotation = {
+      week: r.week === 2 ? 2 : 1,
+      completedDays: { ...r.completedDays },
+      daySnapshots: { ...r.daySnapshots },
+    };
+    [1, 2].forEach(w => {
+      if (!s.__rotation.completedDays[w]) s.__rotation.completedDays[w] = defaultCompletedDays();
+      if (!s.__rotation.daySnapshots[w]) s.__rotation.daySnapshots[w] = { '1': null, '2': null, '3': null, '4': null };
+    });
   }
   return s;
 }
@@ -252,12 +512,22 @@ Farmer's Carry and Suitcase Carry are weight-only (no reps to track) and follow 
 Cable Lateral Raise is tracked separately per side. Only the left side auto-adjusts from your Easy/Hard sessions — the right side never changes weight on its own. If the right side needs a change, use the ✏️ pencil next to the weight to edit it manually.`,
   },
   {
+    title: 'Monthly Rotation Programme',
+    body: `This is a second, separate programme alongside the original one above (now called "Classic"). Switch between them with the "📋 Classic / 📅 Rotation ⇄" button at the top — each keeps its own week/day progress completely independently, so switching back later shows exactly what you left.
+
+Rotation also runs Week 1 and Week 2, each with Push / Pull / Legs / General Conditioning, but the exact exercise list for each day comes from one of four fixed packs (A, B, C, D). The active pack changes automatically on the first Monday of each month (UK time) and cycles A → B → C → D → A.
+
+A day you've already completed keeps the exact exercises it was done with, even after the pack changes later in the month — only days you haven't finished yet pick up the new pack. Nothing resets automatically; "Week Complete" works exactly as it does in Classic.
+
+Brand-new exercises in Rotation show a red "set your starting weight" notice until you edit their weight once with the ✏️ pencil — after that it logs normally. A handful of exercise names are intentionally shared with Classic (e.g. Leg Press, Preacher Curl) because they're the exact same movement — their weight carries over.`,
+  },
+  {
     title: 'Troubleshooting',
     body: `Logged in as the wrong person? Tap "Not [name]?" near the top to switch profiles cleanly.
 
 Machine reads a different effective weight than what's logged (e.g. two different pressdown machines)? Don't try to log around it — use the ✏️ pencil next to the weight to correct it directly. That's a pure manual correction: it doesn't touch your history or your Easy/Hard progression.
 
-"↺ Reset all progress" at the bottom of the screen wipes everything back to starting weights for the current profile — use it with care, it can't be undone.`,
+"↺ Reset all progress" at the bottom of the screen wipes everything back to starting weights for the current profile, in whichever programme you're currently on — use it with care, it can't be undone.`,
   },
 ];
 
@@ -473,6 +743,11 @@ function ExerciseCard({ id, ex, data, onLog, onSaveNotes, onEditWeight, skipped,
 
       {open && !skipped && (
         <div style={{ borderTop: '1px solid #292524', padding: '12px 14px' }}>
+          {data.needsWeight && (
+            <div style={{ fontSize: 12, color: '#fca5a5', background: 'rgba(127,29,29,0.3)', border: '1px solid rgba(220,38,38,0.4)', borderRadius: 8, padding: '7px 10px', marginBottom: 10 }}>
+              ⚠ New exercise — set your starting weight with the ✏️ pencil above before logging.
+            </div>
+          )}
           {ex.note && (!ex.caution || showElbowCaution) && (
             <div style={{ fontSize: 12, color: '#fbbf24', background: 'rgba(120,53,15,0.3)', border: '1px solid rgba(161,98,7,0.4)', borderRadius: 8, padding: '7px 10px', marginBottom: 10 }}>
               ℹ {ex.note}
@@ -576,13 +851,13 @@ function SessionSummary({ day, exData, loggedIds, skippedIds, onDone, profileId 
     if (hist.length < 2) return null;
     const prev = hist[hist.length - 2]?.weightLabel;
     const curr = hist[hist.length - 1]?.weightLabel;
-    if (prev && curr && prev !== curr) return `${EXERCISES[id].name}: ${prev} → ${curr}`;
+    if (prev && curr && prev !== curr) return `${ALL_EXERCISES[id].name}: ${prev} → ${curr}`;
     return null;
   }).filter(Boolean);
 
   const summaryText = (() => {
     const lines = loggedIds.map(id => {
-      const ex = EXERCISES[id];
+      const ex = ALL_EXERCISES[id];
       const last = exData[id].history[exData[id].history.length - 1];
       if (!last) return null;
       const setsDesc = last.sets.map(s => ex.noReps ? (s.mark || 'no mark') : `${s.reps}${s.mark ? ` (${s.mark})` : ''}`).join(', ');
@@ -653,7 +928,7 @@ function CoachFeedback({ profileId }) {
       {items.map(item => (
         <div key={item.id} style={{ border: '1px solid #1e3a8a', background: 'rgba(30,58,138,0.2)', borderRadius: 10, padding: '10px 12px', marginBottom: 8 }}>
           <div style={{ fontSize: 11, color: '#93c5fd', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Coach note{item.exercise_id && EXERCISES[item.exercise_id] ? ` — ${EXERCISES[item.exercise_id].name}` : ''}
+            Coach note{item.exercise_id && ALL_EXERCISES[item.exercise_id] ? ` — ${ALL_EXERCISES[item.exercise_id].name}` : ''}
           </div>
           <div style={{ fontSize: 13, color: '#dbeafe', whiteSpace: 'pre-wrap' }}>{item.message}</div>
           <button
@@ -709,7 +984,7 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
   };
 
   const handleLog = (id, sets, marks, verdict, note) => {
-    const ex = EXERCISES[id];
+    const ex = ALL_EXERCISES[id];
     const cur = exData[id];
     const today = new Date().toISOString().slice(0,10);
     const historySets = sets.map((s, i) => ex.noReps ? { mark: marks[i] } : { reps: s.reps, mark: marks[i] });
@@ -728,11 +1003,14 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
     }
     next.history = next.history.slice(-6);
 
-    const week = exData.__meta.week;
     const nextLoggedIds = loggedIds.includes(id) ? loggedIds : [...loggedIds, id];
-    const nextMeta = updateMetaAfterAction(exData.__meta, week, day, [...nextLoggedIds, ...skippedIds]);
+    const coveredIds = [...nextLoggedIds, ...skippedIds];
+    const metaKey = isRotation ? '__rotation' : '__meta';
+    const nextMeta = isRotation
+      ? updateRotationMetaAfterAction(exData.__rotation, week, day, coveredIds, activePack, daysForWeek[day].exercises)
+      : updateMetaAfterAction(exData.__meta, week, day, coveredIds);
 
-    persist({ ...exData, [id]: next, __meta: nextMeta });
+    persist({ ...exData, [id]: next, [metaKey]: nextMeta });
     setLoggedIds(nextLoggedIds);
   };
 
@@ -742,24 +1020,37 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
   };
 
   const handleEditWeight = (id, updates) => {
-    const cur = { ...exData[id], ...updates };
+    const cur = { ...exData[id], ...updates, needsWeight: false };
     persist({ ...exData, [id]: cur });
   };
 
   const handleSkip = (id) => {
     const nextSkippedIds = skippedIds.includes(id) ? skippedIds.filter(x => x !== id) : [...skippedIds, id];
 
-    const week = exData.__meta.week;
-    const nextMeta = updateMetaAfterAction(exData.__meta, week, day, [...loggedIds, ...nextSkippedIds]);
+    const coveredIds = [...loggedIds, ...nextSkippedIds];
+    const metaKey = isRotation ? '__rotation' : '__meta';
+    const nextMeta = isRotation
+      ? updateRotationMetaAfterAction(exData.__rotation, week, day, coveredIds, activePack, daysForWeek[day].exercises)
+      : updateMetaAfterAction(exData.__meta, week, day, coveredIds);
 
-    persist({ ...exData, __meta: nextMeta });
+    persist({ ...exData, [metaKey]: nextMeta });
     setSkippedIds(nextSkippedIds);
   };
 
+  // Scoped to whichever programme is currently active — resetting Rotation
+  // never touches Classic's weights/history, and vice versa. Exercise ids
+  // that are deliberately shared between the two (e.g. legPress) do reset
+  // in both views, since they're genuinely the same stored weight.
   const handleReset = async () => {
-    if (!window.confirm('Reset all progress back to starting weights?')) return;
-    const d = normalizeState(buildDefaultState());
-    await persist(d);
+    const label = isRotation ? 'Monthly Rotation' : 'Classic';
+    const otherLabel = isRotation ? 'Classic' : 'Monthly Rotation';
+    if (!window.confirm(`Reset ${label} progress back to starting weights? This won't touch ${otherLabel}.`)) return;
+    const idsToReset = getProgrammeExerciseIds(isRotation);
+    const resetExercises = {};
+    idsToReset.forEach(id => { resetExercises[id] = defaultExerciseState(id, ALL_EXERCISES[id]); });
+    const metaKey = isRotation ? '__rotation' : '__meta';
+    const resetMeta = isRotation ? defaultRotationMeta() : defaultMeta();
+    await persist({ ...exData, ...resetExercises, [metaKey]: resetMeta });
     setDay('1');
     setLoggedIds([]);
     setSkippedIds([]);
@@ -767,10 +1058,10 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
   };
 
   const handleForceWeekSwitch = () => {
-    const week = exData.__meta.week;
     const nextWeek = week === 1 ? 2 : 1;
     if (!window.confirm(`Switch to Week ${nextWeek} now?`)) return;
-    persist({ ...exData, __meta: { ...exData.__meta, week: nextWeek } });
+    const metaKey = isRotation ? '__rotation' : '__meta';
+    persist({ ...exData, [metaKey]: { ...activeMeta, week: nextWeek } });
     setDay('1');
     setLoggedIds([]);
     setSkippedIds([]);
@@ -780,21 +1071,43 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
   // Only touches completedDays once you explicitly confirm — all 4 days
   // stay green (and the week stays put) for as long as you like otherwise.
   const handleConfirmWeekComplete = () => {
-    const week = exData.__meta.week;
     const nextWeek = week === 1 ? 2 : 1;
     if (!window.confirm(`Week ${week} complete — clear its days and start Week ${nextWeek}?`)) return;
-    const completedDays = { ...exData.__meta.completedDays, [week]: defaultCompletedDays() };
-    persist({ ...exData, __meta: { ...exData.__meta, week: nextWeek, completedDays } });
+    const completedDays = { ...activeMeta.completedDays, [week]: defaultCompletedDays() };
+    const metaKey = isRotation ? '__rotation' : '__meta';
+    let nextMetaObj = { ...activeMeta, week: nextWeek, completedDays };
+    if (isRotation) {
+      nextMetaObj = { ...nextMetaObj, daySnapshots: { ...activeMeta.daySnapshots, [week]: { '1': null, '2': null, '3': null, '4': null } } };
+    }
+    persist({ ...exData, [metaKey]: nextMetaObj });
     setDay('1');
     setLoggedIds([]);
     setSkippedIds([]);
     setSessionDone(false);
   };
 
-  const week = exData && exData.__meta.week;
-  const daysForWeek = exData && WEEKS[week];
+  // Switches between the classic and rotation programmes. Each keeps its
+  // own week/day-completion state (__meta vs __rotation) — nothing here
+  // is shared, so switching back later shows exactly what was left.
+  const handleToggleProgramme = () => {
+    const nextProgramme = programme === 'rotation' ? 'classic' : 'rotation';
+    const label = nextProgramme === 'rotation' ? 'Monthly Rotation' : 'Classic';
+    if (!window.confirm(`Switch to the ${label} programme? Your progress in both is kept separately.`)) return;
+    persist({ ...exData, __programme: nextProgramme });
+    setDay('1');
+    setLoggedIds([]);
+    setSkippedIds([]);
+    setSessionDone(false);
+  };
+
+  const programme = exData ? (exData.__programme || 'classic') : 'classic';
+  const isRotation = programme === 'rotation';
+  const activePack = resolveActivePack();
+  const activeMeta = exData && (isRotation ? exData.__rotation : exData.__meta);
+  const week = activeMeta && activeMeta.week;
+  const daysForWeek = exData && (isRotation ? getRotationDaysForWeek(exData.__rotation, activePack, week) : WEEKS[week]);
   const allLogged = exData && daysForWeek[day].exercises.every(id => loggedIds.includes(id) || skippedIds.includes(id));
-  const weekAllComplete = exData && Object.keys(daysForWeek).every(d => exData.__meta.completedDays[week][d]);
+  const weekAllComplete = exData && Object.keys(daysForWeek).every(d => activeMeta.completedDays[week][d]);
 
   if (loadError) return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0c0a09', color: '#f5f5f4', fontFamily: 'system-ui', padding: 24, textAlign: 'center' }}>
@@ -819,15 +1132,21 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
       <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
         <button
           onClick={() => setManualOpen(true)}
-          style={{ flex: 1, fontSize: 13, fontWeight: 600, padding: '6px 4px', background: '#1d4ed8', border: '1px solid #1d4ed8', color: '#fff', borderRadius: 8, cursor: 'pointer' }}
+          style={{ flex: 1, fontSize: 12, fontWeight: 600, padding: '6px 4px', background: '#1d4ed8', border: '1px solid #1d4ed8', color: '#fff', borderRadius: 8, cursor: 'pointer' }}
         >
           📖 Manual
         </button>
         <button
-          onClick={handleForceWeekSwitch}
-          style={{ flex: 1, fontSize: 13, fontWeight: 600, padding: '6px 4px', background: '#1d4ed8', border: '1px solid #1d4ed8', color: '#fff', borderRadius: 8, cursor: 'pointer' }}
+          onClick={handleToggleProgramme}
+          style={{ flex: 1, fontSize: 12, fontWeight: 600, padding: '6px 4px', background: '#1d4ed8', border: '1px solid #1d4ed8', color: '#fff', borderRadius: 8, cursor: 'pointer' }}
         >
-          Switch to Week {week === 1 ? 2 : 1} →
+          {isRotation ? '📅 Rotation' : '📋 Classic'} ⇄
+        </button>
+        <button
+          onClick={handleForceWeekSwitch}
+          style={{ flex: 1, fontSize: 12, fontWeight: 600, padding: '6px 4px', background: '#1d4ed8', border: '1px solid #1d4ed8', color: '#fff', borderRadius: 8, cursor: 'pointer' }}
+        >
+          Week {week === 1 ? 2 : 1} →
         </button>
       </div>
 
@@ -840,6 +1159,7 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ fontSize: 12, color: '#78716c' }}>
           Week {week} · Day {day} — {daysForWeek[day].label}
+          {isRotation && <> · Pack {daysForWeek[day].packId}</>}
         </div>
         <button
           onClick={onSwitchProfile}
@@ -854,7 +1174,7 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
         {Object.keys(daysForWeek).map(d => {
           const isSelected = d === day;
-          const isComplete = exData.__meta.completedDays[week][d];
+          const isComplete = activeMeta.completedDays[week][d];
           const bg = isSelected ? '#c2410c' : isComplete ? '#166534' : '#1c1917';
           const borderColor = isSelected ? '#c2410c' : isComplete ? '#16a34a' : '#292524';
           const color = isSelected || isComplete ? '#fff' : '#78716c';
@@ -896,7 +1216,7 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
           {daysForWeek[day].exercises.map((id, idx) => (
             <ExerciseCard
               key={`${week}-${day}-${id}-${idx}`}
-              id={id} ex={EXERCISES[id]} data={exData[id]}
+              id={id} ex={ALL_EXERCISES[id]} data={exData[id]}
               onLog={handleLog} onSaveNotes={handleSaveNotes} onEditWeight={handleEditWeight}
               skipped={skippedIds.includes(id)} onSkip={handleSkip}
               profileId={profileId}
