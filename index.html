@@ -128,7 +128,7 @@ const ROTATION_EXERCISES = {
   horizontalMachineRow:  { name: 'Horizontal Machine Row',  sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/E2St0TwLrjw' },
   straightArmPulldown:   { name: 'Straight-Arm Pulldown',   sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 2,   needsWeight: true, video: 'https://youtu.be/PXY8XcXcdvo' },
   closeGripEzBarCurl:    { name: 'Close-Grip EZ-Bar Curl',  sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/1a1231mP_UE' },
-  frontPlank:            { name: 'Front Plank', sets: 2, repMin: 0, repMax: 0, weight: 30, unit: 'sec', increment: 10, noReps: true, needsWeight: true, note: 'Weight field tracks seconds held.', video: 'https://youtu.be/bafJQhIzxh8' },
+  frontPlank:            { name: 'Front Plank', sets: 2, repMin: 0, repMax: 0, weight: 30, unit: 'sec', increment: 10, noReps: true, needsWeight: true, effortLabel: 'hold', setLabel: 'Hold', note: 'Weight field tracks seconds held — Easy/Hard is how the hold felt, not a weight.', video: 'https://youtu.be/bafJQhIzxh8' },
   triBarLatPulldown:     { name: 'Tri-Bar Lat Pulldown',    sets: 3, repMin: 8, repMax: 10, weight: 55, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/mAxog7Uj-ME' },
   dumbbellPullover:      { name: 'Dumbbell Pullover',       sets: 3, repMin: 8, repMax: 10, weight: 14, unit: 'kg', increment: 1,   needsWeight: true, video: 'https://youtu.be/6-IJQtu4VOA' },
   reverseEzBarCurl:      { name: 'Reverse EZ-Bar Curl',     sets: 3, repMin: 8, repMax: 10, weight: 20, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/_IQNi_8tHjw' },
@@ -157,11 +157,11 @@ const ROTATION_EXERCISES = {
   dumbbellCalfRaise:     { name: 'Dumbbell Calf Raise',     sets: 2, repMin: 12, repMax: 15, weight: 16, unit: 'kg', increment: 2, needsWeight: true, video: 'https://youtu.be/8UgBU3eZ1nA' },
   cyclistSquat:          { name: 'Cyclist Squat',            sets: 3, repMin: 8, repMax: 10, weight: 30, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/mSQVnaDqg5M' },
 
-  rowingMachine:         { name: 'Rowing Machine', sets: 1, repMin: 0, repMax: 0, weight: 10, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.', video: 'https://youtu.be/nXjQVa1O2yE' },
-  crossTrainer:          { name: 'Cross Trainer',  sets: 1, repMin: 0, repMax: 0, weight: 10, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.', video: 'https://youtu.be/9VfNgAHtaaU' },
-  inclineTreadmillWalk:  { name: 'Incline Treadmill Walk', sets: 1, repMin: 0, repMax: 0, weight: 12, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.', video: 'https://youtu.be/BWh2DTfr1VE' },
-  uprightBicycle:        { name: 'Upright Bicycle', sets: 1, repMin: 0, repMax: 0, weight: 12, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.', video: 'https://youtu.be/z-MG7iaa6Ek' },
-  stepper:               { name: 'Stepper',         sets: 1, repMin: 0, repMax: 0, weight: 10, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.', video: 'https://youtu.be/VXKcUxMbrnQ' },
+  rowingMachine:         { name: 'Rowing Machine', sets: 1, repMin: 0, repMax: 0, weight: 10, unit: 'min', increment: 1, noReps: true, needsWeight: true, effortLabel: 'session', setLabel: 'Effort', note: 'Weight field tracks minutes — log the resistance/incline level you used in the notes below. Easy/Hard is how the effort felt, not a weight.', video: 'https://youtu.be/nXjQVa1O2yE' },
+  crossTrainer:          { name: 'Cross Trainer',  sets: 1, repMin: 0, repMax: 0, weight: 10, unit: 'min', increment: 1, noReps: true, needsWeight: true, effortLabel: 'session', setLabel: 'Effort', note: 'Weight field tracks minutes — log the resistance/incline level you used in the notes below. Easy/Hard is how the effort felt, not a weight.', video: 'https://youtu.be/9VfNgAHtaaU' },
+  inclineTreadmillWalk:  { name: 'Incline Treadmill Walk', sets: 1, repMin: 0, repMax: 0, weight: 12, unit: 'min', increment: 1, noReps: true, needsWeight: true, effortLabel: 'session', setLabel: 'Effort', note: 'Weight field tracks minutes — log the resistance/incline level you used in the notes below. Easy/Hard is how the effort felt, not a weight.', video: 'https://youtu.be/BWh2DTfr1VE' },
+  uprightBicycle:        { name: 'Upright Bicycle', sets: 1, repMin: 0, repMax: 0, weight: 12, unit: 'min', increment: 1, noReps: true, needsWeight: true, effortLabel: 'session', setLabel: 'Effort', note: 'Weight field tracks minutes — log the resistance/incline level you used in the notes below. Easy/Hard is how the effort felt, not a weight.', video: 'https://youtu.be/z-MG7iaa6Ek' },
+  stepper:               { name: 'Stepper',         sets: 1, repMin: 0, repMax: 0, weight: 10, unit: 'min', increment: 1, noReps: true, needsWeight: true, effortLabel: 'session', setLabel: 'Effort', note: 'Weight field tracks minutes — log the resistance/incline level you used in the notes below. Easy/Hard is how the effort felt, not a weight.', video: 'https://youtu.be/VXKcUxMbrnQ' },
   inclineHammerCurl:     { name: 'Incline Hammer Curl', sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1, needsWeight: true, video: 'https://youtu.be/DRQyu3BP410' },
   dumbbellSupinationCurl:{ name: 'Dumbbell Supination Curl', sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1, needsWeight: true, video: 'https://youtu.be/GHx7so9DFlM' },
   singleArmOverheadTricepsExtension: { name: 'Single-Arm Overhead Triceps Extension', sets: 3, repMin: 8, repMax: 10, weight: 8, unit: 'kg', increment: 1, needsWeight: true, video: 'https://youtu.be/8lTz_3I7boA' },
@@ -689,7 +689,7 @@ function ExerciseCard({ id, ex, data, onLog, onSaveNotes, onEditWeight, skipped,
     }).join(', ');
     let text =
       `[Training log — ${ex.name}]\n` +
-      `Weight: ${wLabel} | Sets: ${setsDesc} | Target: ${ex.noReps ? 'carries' : `${ex.repMin}–${ex.repMax} reps`}\n` +
+      `Weight: ${wLabel} | Sets: ${setsDesc} | Target: ${ex.noReps ? (ex.effortLabel || 'carries') : `${ex.repMin}–${ex.repMax} reps`}\n` +
       `Session verdict: ${verdict ? markLabel(verdict) : 'N/A'}` +
       (showElbowCaution ? `\nRight elbow caution: YES` : '');
     if (note.trim()) text += `\nMy note: ${note}`;
@@ -726,7 +726,7 @@ function ExerciseCard({ id, ex, data, onLog, onSaveNotes, onEditWeight, skipped,
             )}
           </div>
           <div style={{ fontSize: 14, color: '#f5f5f4', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span>{weightLabel} · {ex.sets} × {ex.noReps ? 'carries' : (ex.repMin === ex.repMax ? ex.repMin : `${ex.repMin}–${ex.repMax}`)}</span>
+            <span>{weightLabel} · {ex.sets} × {ex.noReps ? (ex.effortLabel || 'carries') : (ex.repMin === ex.repMax ? ex.repMin : `${ex.repMin}–${ex.repMax}`)}</span>
             <button
               onClick={e => { e.stopPropagation(); editingWeight ? setEditingWeight(false) : openWeightEdit(); }}
               style={{ background: 'none', border: 'none', color: '#78716c', fontSize: 12, cursor: 'pointer', padding: 0, flexShrink: 0 }}
@@ -799,7 +799,7 @@ function ExerciseCard({ id, ex, data, onLog, onSaveNotes, onEditWeight, skipped,
 
           {sets.map((s, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
-              <span style={{ fontSize: 14, color: '#f5f5f4', width: 44, flexShrink: 0 }}>Set {i+1}</span>
+              <span style={{ fontSize: 14, color: '#f5f5f4', width: 44, flexShrink: 0 }}>{ex.setLabel || 'Set'} {i+1}</span>
               {!ex.noReps && (
                 <input
                   type="number" inputMode="numeric" value={s.reps}
