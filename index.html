@@ -57,25 +57,25 @@ const storage = {
 
 
 const EXERCISES = {
-  flatBench:      { name: 'Flat Bench',          sets: 3, repMin: 8,  repMax: 10, weight: 50,   unit: 'kg',      increment: 2.5 },
-  inclinePress:   { name: 'Incline Press',       sets: 3, repMin: 8,  repMax: 10, weight: 60,   unit: 'kg',      increment: 2.5, note: 'Barbell — or 20kg DBs each side' },
-  shoulderPress:  { name: 'Shoulder Press',      sets: 2, repMin: 10, repMax: 10, weight: 14,   unit: 'kg',      increment: 2 },
-  cableLateral:   { name: 'Cable Lateral Raise', sets: 2, repMin: 12, repMax: 12, weightL: 14,  weightR: 9, unit: 'kg', increment: 1, caution: true, note: 'Right side limited by tennis elbow — go up only if comfortable' },
-  ropePressdown:  { name: 'Rope Pressdown',      sets: 2, repMin: 10, repMax: 12, weight: 50,   unit: 'kg',      increment: 2.5 },
-  lowHighFly:     { name: 'Low-High Fly',        sets: 2, repMin: 10, repMax: 12, weight: 23,   unit: 'kg',      increment: 2 },
-  latPulldown:    { name: 'Lat Pulldown',        sets: 3, repMin: 10, repMax: 10, weight: 64,   unit: 'kg',      increment: 2.5 },
-  singleArmRow:   { name: 'Single Arm Row',      sets: 3, repMin: 10, repMax: 10, weight: 22,   unit: 'kg',      increment: 2 },
-  ezBarCurl:      { name: 'EZ Bar Curl',         sets: 3, repMin: 8,  repMax: 8,  weight: 30,   unit: 'kg',      increment: 2.5, caution: true, note: 'Watch right elbow' },
+  flatBench:      { name: 'Flat Bench',          sets: 3, repMin: 8,  repMax: 10, weight: 50,   unit: 'kg',      increment: 2.5, video: 'https://youtu.be/-zRQMqsOAwM' },
+  inclinePress:   { name: 'Incline Press',       sets: 3, repMin: 8,  repMax: 10, weight: 60,   unit: 'kg',      increment: 2.5, note: 'Barbell — or 20kg DBs each side', video: 'https://youtu.be/BVzqMrvU4_M' },
+  shoulderPress:  { name: 'Shoulder Press',      sets: 2, repMin: 10, repMax: 10, weight: 14,   unit: 'kg',      increment: 2, video: 'https://youtu.be/NTPcLnmrNhk' },
+  cableLateral:   { name: 'Cable Lateral Raise', sets: 2, repMin: 12, repMax: 12, weightL: 14,  weightR: 9, unit: 'kg', increment: 1, caution: true, note: 'Right side limited by tennis elbow — go up only if comfortable', video: 'https://youtu.be/GyEhmd4F3-4' },
+  ropePressdown:  { name: 'Rope Pressdown',      sets: 2, repMin: 10, repMax: 12, weight: 50,   unit: 'kg',      increment: 2.5, video: 'https://youtu.be/pxXsgA4xVjU' },
+  lowHighFly:     { name: 'Low-High Fly',        sets: 2, repMin: 10, repMax: 12, weight: 23,   unit: 'kg',      increment: 2, video: 'https://youtu.be/gi-OZrvENC4' },
+  latPulldown:    { name: 'Lat Pulldown',        sets: 3, repMin: 10, repMax: 10, weight: 64,   unit: 'kg',      increment: 2.5, video: 'https://youtu.be/Q-Xkq9vFXGQ' },
+  singleArmRow:   { name: 'Single Arm Row',      sets: 3, repMin: 10, repMax: 10, weight: 22,   unit: 'kg',      increment: 2, video: 'https://youtu.be/hxhRrc3NT44' },
+  ezBarCurl:      { name: 'EZ Bar Curl',         sets: 3, repMin: 8,  repMax: 8,  weight: 30,   unit: 'kg',      increment: 2.5, caution: true, note: 'Watch right elbow', video: 'https://youtu.be/SxOSviW-wJU' },
   farmersCarry:   { name: "Farmer's Carry",      sets: 3, repMin: 0,  repMax: 0,  weight: 20,   unit: 'kg/hand', increment: 2.5, noReps: true },
-  legPress:       { name: 'Leg Press',           sets: 3, repMin: 8,  repMax: 8,  weight: 82,   unit: 'kg',      increment: 5 },
-  rdl:            { name: 'RDL',                 sets: 3, repMin: 8,  repMax: 8,  weight: 55,   unit: 'kg',      increment: 2.5 },
+  legPress:       { name: 'Leg Press',           sets: 3, repMin: 8,  repMax: 8,  weight: 82,   unit: 'kg',      increment: 5, video: 'https://youtu.be/vVK6m3V-8aE' },
+  rdl:            { name: 'RDL',                 sets: 3, repMin: 8,  repMax: 8,  weight: 55,   unit: 'kg',      increment: 2.5, video: 'https://youtu.be/GQn0TkXuC3Y' },
   walkingLunges:  { name: 'Walking Lunges',      sets: 3, repMin: 10, repMax: 12, weight: 14,   unit: 'kg DBs',  increment: 2 },
-  seatedLegCurl:  { name: 'Seated Leg Curl',     sets: 3, repMin: 12, repMax: 12, weight: 54,   unit: 'kg',      increment: 5 },
-  proneLegCurl:   { name: 'Prone Leg Curl',      sets: 2, repMin: 10, repMax: 12, weight: 36,   unit: 'kg',      increment: 5 },
-  calfRaises:     { name: 'Calf Raises',         sets: 2, repMin: 12, repMax: 15, weight: 30,   unit: 'kg',      increment: 5 },
-  closeGripBench: { name: 'Close Grip Bench',    sets: 3, repMin: 6,  repMax: 8,  weight: 50,   unit: 'kg',      increment: 2.5, caution: true, note: 'Watch right elbow' },
-  preacherCurl:   { name: 'Preacher Curl',       sets: 2, repMin: 12, repMax: 12, weight: 25,   unit: 'kg',      increment: 2.5, caution: true, note: 'Watch right elbow' },
-  hammerCurl:     { name: 'Hammer Curl',         sets: 3, repMin: 10, repMax: 10, weight: 12,   unit: 'kg',      increment: 2,   caution: true, note: 'Watch right elbow' },
+  seatedLegCurl:  { name: 'Seated Leg Curl',     sets: 3, repMin: 12, repMax: 12, weight: 54,   unit: 'kg',      increment: 5, video: 'https://youtu.be/S0_Eo79xYCU' },
+  proneLegCurl:   { name: 'Prone Leg Curl',      sets: 2, repMin: 10, repMax: 12, weight: 36,   unit: 'kg',      increment: 5, video: 'https://youtu.be/S0_Eo79xYCU' },
+  calfRaises:     { name: 'Calf Raises',         sets: 2, repMin: 12, repMax: 15, weight: 30,   unit: 'kg',      increment: 5, video: 'https://youtu.be/8UgBU3eZ1nA' },
+  closeGripBench: { name: 'Close Grip Bench',    sets: 3, repMin: 6,  repMax: 8,  weight: 50,   unit: 'kg',      increment: 2.5, caution: true, note: 'Watch right elbow', video: 'https://youtu.be/ntanm3fUnU4' },
+  preacherCurl:   { name: 'Preacher Curl',       sets: 2, repMin: 12, repMax: 12, weight: 25,   unit: 'kg',      increment: 2.5, caution: true, note: 'Watch right elbow', video: 'https://youtu.be/uIyvhUwUewY' },
+  hammerCurl:     { name: 'Hammer Curl',         sets: 3, repMin: 10, repMax: 10, weight: 12,   unit: 'kg',      increment: 2,   caution: true, note: 'Watch right elbow', video: 'https://youtu.be/DnJ5TDPTtZA' },
   landmineTwist:  { name: 'Landmine Twist',      sets: 3, repMin: 10, repMax: 10, weight: 10,   unit: 'kg',      increment: 2.5, note: 'Reps are per side — start light (empty bar or 5–10kg on the end). First session is a calibration session.' },
   kettlebellHalo: { name: 'Kettlebell Halo',     sets: 2, repMin: 8,  repMax: 8,  weight: 8,    unit: 'kg',      increment: 2,   note: '8 reps clockwise + 8 reps counter-clockwise per set. First session is a calibration session.' },
   suitcaseCarry:  { name: 'Suitcase Carry',      sets: 2, repMin: 0,  repMax: 0,  weight: 16,   unit: 'kg',      increment: 2,   noReps: true, note: '~20m or 30–40 sec per side. First session is a calibration session.' },
@@ -108,65 +108,65 @@ const WEEKS = {
 // everything else gets its own id and its own starting weight so no
 // history is ever merged across genuinely different movements.
 const ROTATION_EXERCISES = {
-  barbellOverheadPress:  { name: 'Barbell Overhead Press',  sets: 3, repMin: 8, repMax: 10, weight: 30, unit: 'kg', increment: 2.5, needsWeight: true },
-  flatDumbbellFly:       { name: 'Flat Dumbbell Fly',       sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1,   needsWeight: true },
-  dumbbellLateralRaise:  { name: 'Dumbbell Lateral Raise',  sets: 3, repMin: 8, repMax: 10, weight: 8,  unit: 'kg', increment: 1,   needsWeight: true },
-  machineShoulderPress:  { name: 'Machine Shoulder Press',  sets: 3, repMin: 8, repMax: 10, weight: 20, unit: 'kg', increment: 2.5, needsWeight: true },
-  flatCableCrossover:    { name: 'Flat Cable Crossover',    sets: 3, repMin: 8, repMax: 10, weight: 15, unit: 'kg', increment: 1,   needsWeight: true },
-  cableReverseFly:       { name: 'Cable Reverse Fly',       sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1,   needsWeight: true },
-  vBarPressdown:         { name: 'V-Bar Pressdown',         sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
-  flatDumbbellPress:     { name: 'Flat Dumbbell Press',     sets: 3, repMin: 8, repMax: 10, weight: 20, unit: 'kg', increment: 2,   needsWeight: true },
-  inclineCableFly:       { name: 'Incline Cable Fly',       sets: 3, repMin: 8, repMax: 10, weight: 12, unit: 'kg', increment: 1,   needsWeight: true },
-  straightBarPressdown:  { name: 'Straight-Bar Pressdown',  sets: 3, repMin: 8, repMax: 10, weight: 45, unit: 'kg', increment: 2.5, needsWeight: true },
-  inclineSmithPress:     { name: 'Incline Smith-Machine Press', sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
-  declineCableFly:       { name: 'Decline Cable Fly',       sets: 3, repMin: 8, repMax: 10, weight: 12, unit: 'kg', increment: 1,   needsWeight: true },
-  dumbbellReverseFly:    { name: 'Dumbbell Reverse Fly',    sets: 3, repMin: 8, repMax: 10, weight: 8,  unit: 'kg', increment: 1,   needsWeight: true },
-  splitRopePressdown:    { name: 'Split-Rope Pressdown',    sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
-  inclineDumbbellFly:    { name: 'Incline Dumbbell Fly',    sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1,   needsWeight: true },
-  declineCableCrossover: { name: 'Decline Cable Crossover', sets: 3, repMin: 8, repMax: 10, weight: 15, unit: 'kg', increment: 1,   needsWeight: true },
+  barbellOverheadPress:  { name: 'Barbell Overhead Press',  sets: 3, repMin: 8, repMax: 10, weight: 30, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/qnY7Aazu8DI' },
+  flatDumbbellFly:       { name: 'Flat Dumbbell Fly',       sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1,   needsWeight: true, video: 'https://youtu.be/Sw62ds4y24g' },
+  dumbbellLateralRaise:  { name: 'Dumbbell Lateral Raise',  sets: 3, repMin: 8, repMax: 10, weight: 8,  unit: 'kg', increment: 1,   needsWeight: true, video: 'https://youtu.be/lM7eUJ6rrnQ' },
+  machineShoulderPress:  { name: 'Machine Shoulder Press',  sets: 3, repMin: 8, repMax: 10, weight: 20, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/4iQtfrOgCXw' },
+  flatCableCrossover:    { name: 'Flat Cable Crossover',    sets: 3, repMin: 8, repMax: 10, weight: 15, unit: 'kg', increment: 1,   needsWeight: true, video: 'https://youtu.be/9jid3Z4FoZk' },
+  cableReverseFly:       { name: 'Cable Reverse Fly',       sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1,   needsWeight: true, video: 'https://youtu.be/96nHyeMaJIA' },
+  vBarPressdown:         { name: 'V-Bar Pressdown',         sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/MFA9m259m8w' },
+  flatDumbbellPress:     { name: 'Flat Dumbbell Press',     sets: 3, repMin: 8, repMax: 10, weight: 20, unit: 'kg', increment: 2,   needsWeight: true, video: 'https://youtu.be/mI7rHrFIF1Q' },
+  inclineCableFly:       { name: 'Incline Cable Fly',       sets: 3, repMin: 8, repMax: 10, weight: 12, unit: 'kg', increment: 1,   needsWeight: true, video: 'https://youtu.be/mI7rHrFIF1Q' },
+  straightBarPressdown:  { name: 'Straight-Bar Pressdown',  sets: 3, repMin: 8, repMax: 10, weight: 45, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/0oh42lFzUW4' },
+  inclineSmithPress:     { name: 'Incline Smith-Machine Press', sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/IzMElRM1MJ8' },
+  declineCableFly:       { name: 'Decline Cable Fly',       sets: 3, repMin: 8, repMax: 10, weight: 12, unit: 'kg', increment: 1,   needsWeight: true, video: 'https://youtu.be/gi-OZrvENC4' },
+  dumbbellReverseFly:    { name: 'Dumbbell Reverse Fly',    sets: 3, repMin: 8, repMax: 10, weight: 8,  unit: 'kg', increment: 1,   needsWeight: true, video: 'https://youtu.be/sX4iqawqZbI' },
+  splitRopePressdown:    { name: 'Split-Rope Pressdown',    sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/2awXItoJCqY' },
+  inclineDumbbellFly:    { name: 'Incline Dumbbell Fly',    sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1,   needsWeight: true, video: 'https://youtu.be/iDgCyN7HcJI' },
+  declineCableCrossover: { name: 'Decline Cable Crossover', sets: 3, repMin: 8, repMax: 10, weight: 15, unit: 'kg', increment: 1,   needsWeight: true, video: 'https://youtu.be/gi-OZrvENC4' },
 
-  horizontalMachineRow:  { name: 'Horizontal Machine Row',  sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
-  straightArmPulldown:   { name: 'Straight-Arm Pulldown',   sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 2,   needsWeight: true },
-  closeGripEzBarCurl:    { name: 'Close-Grip EZ-Bar Curl',  sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 2.5, needsWeight: true },
-  frontPlank:            { name: 'Front Plank', sets: 2, repMin: 0, repMax: 0, weight: 30, unit: 'sec', increment: 10, noReps: true, needsWeight: true, note: 'Weight field tracks seconds held.' },
-  triBarLatPulldown:     { name: 'Tri-Bar Lat Pulldown',    sets: 3, repMin: 8, repMax: 10, weight: 55, unit: 'kg', increment: 2.5, needsWeight: true },
-  dumbbellPullover:      { name: 'Dumbbell Pullover',       sets: 3, repMin: 8, repMax: 10, weight: 14, unit: 'kg', increment: 1,   needsWeight: true },
-  reverseEzBarCurl:      { name: 'Reverse EZ-Bar Curl',     sets: 3, repMin: 8, repMax: 10, weight: 20, unit: 'kg', increment: 2.5, needsWeight: true },
-  hangingLegRaise:       { name: 'Hanging Leg Raise',       sets: 2, repMin: 8, repMax: 12, weight: 0,  unit: 'kg', increment: 2.5, needsWeight: true },
-  underhandLatPulldown:  { name: 'Underhand Lat Pulldown',  sets: 3, repMin: 8, repMax: 10, weight: 55, unit: 'kg', increment: 2.5, needsWeight: true },
-  barbellCurl:           { name: 'Barbell Curl',            sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 2.5, needsWeight: true },
-  cableHammerCurl:       { name: 'Cable Hammer Curl',       sets: 3, repMin: 8, repMax: 10, weight: 20, unit: 'kg', increment: 1,   needsWeight: true },
-  russianTwist:          { name: 'Russian Twist', sets: 2, repMin: 12, repMax: 15, weight: 0, unit: 'kg', increment: 2.5, needsWeight: true, note: 'Bodyweight to start — add a plate once it’s easy.' },
-  shoulderWidthLatPulldown: { name: 'Shoulder-Width Lat Pulldown', sets: 3, repMin: 8, repMax: 10, weight: 55, unit: 'kg', increment: 2.5, needsWeight: true },
-  wideGripCableRow:      { name: 'Wide-Grip Cable Row',     sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
-  spiderCurl:            { name: 'Spider Curl',             sets: 3, repMin: 8, repMax: 10, weight: 18, unit: 'kg', increment: 1,   needsWeight: true },
-  zottmanCurl:           { name: 'Zottman Curl',            sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1,   needsWeight: true },
-  pendlayRow:            { name: 'Pendlay Row',             sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
-  underhandEzBarRow:     { name: 'Underhand EZ-Bar Bent-Over Row', sets: 3, repMin: 8, repMax: 10, weight: 35, unit: 'kg', increment: 2.5, needsWeight: true },
-  inclineDumbbellCurl:   { name: 'Incline Dumbbell Curl',   sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1,   needsWeight: true },
-  stabilityBallCrunch:   { name: 'Stability-Ball Crunch', sets: 2, repMin: 12, repMax: 15, weight: 0, unit: 'kg', increment: 2.5, needsWeight: true, note: 'Bodyweight to start — add a plate once it’s easy.' },
-  verticalGripMachineRow:{ name: 'Vertical-Grip Machine Row', sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
+  horizontalMachineRow:  { name: 'Horizontal Machine Row',  sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/E2St0TwLrjw' },
+  straightArmPulldown:   { name: 'Straight-Arm Pulldown',   sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 2,   needsWeight: true, video: 'https://youtu.be/PXY8XcXcdvo' },
+  closeGripEzBarCurl:    { name: 'Close-Grip EZ-Bar Curl',  sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/1a1231mP_UE' },
+  frontPlank:            { name: 'Front Plank', sets: 2, repMin: 0, repMax: 0, weight: 30, unit: 'sec', increment: 10, noReps: true, needsWeight: true, note: 'Weight field tracks seconds held.', video: 'https://youtu.be/bafJQhIzxh8' },
+  triBarLatPulldown:     { name: 'Tri-Bar Lat Pulldown',    sets: 3, repMin: 8, repMax: 10, weight: 55, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/mAxog7Uj-ME' },
+  dumbbellPullover:      { name: 'Dumbbell Pullover',       sets: 3, repMin: 8, repMax: 10, weight: 14, unit: 'kg', increment: 1,   needsWeight: true, video: 'https://youtu.be/6-IJQtu4VOA' },
+  reverseEzBarCurl:      { name: 'Reverse EZ-Bar Curl',     sets: 3, repMin: 8, repMax: 10, weight: 20, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/_IQNi_8tHjw' },
+  hangingLegRaise:       { name: 'Hanging Leg Raise',       sets: 2, repMin: 8, repMax: 12, weight: 0,  unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/RLnK0zcjKWw' },
+  underhandLatPulldown:  { name: 'Underhand Lat Pulldown',  sets: 3, repMin: 8, repMax: 10, weight: 55, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/GC-tzGcQgYU' },
+  barbellCurl:           { name: 'Barbell Curl',            sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/Qx7_xP6k3LI' },
+  cableHammerCurl:       { name: 'Cable Hammer Curl',       sets: 3, repMin: 8, repMax: 10, weight: 20, unit: 'kg', increment: 1,   needsWeight: true, video: 'https://youtu.be/9zgNmXwGo0w' },
+  russianTwist:          { name: 'Russian Twist', sets: 2, repMin: 12, repMax: 15, weight: 0, unit: 'kg', increment: 2.5, needsWeight: true, note: 'Bodyweight to start — add a plate once it’s easy.', video: 'https://youtu.be/FD2PIykhHfQ' },
+  shoulderWidthLatPulldown: { name: 'Shoulder-Width Lat Pulldown', sets: 3, repMin: 8, repMax: 10, weight: 55, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/2F5VjghofqU' },
+  wideGripCableRow:      { name: 'Wide-Grip Cable Row',     sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/Q-Xkq9vFXGQ' },
+  spiderCurl:            { name: 'Spider Curl',             sets: 3, repMin: 8, repMax: 10, weight: 18, unit: 'kg', increment: 1,   needsWeight: true, video: 'https://youtu.be/OSF2wG4ZZoU' },
+  zottmanCurl:           { name: 'Zottman Curl',            sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1,   needsWeight: true, video: 'https://youtu.be/E3EFTCk9r2o' },
+  pendlayRow:            { name: 'Pendlay Row',             sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/wQ2hYLHuyd8' },
+  underhandEzBarRow:     { name: 'Underhand EZ-Bar Bent-Over Row', sets: 3, repMin: 8, repMax: 10, weight: 35, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/aYoJ5aBMli0' },
+  inclineDumbbellCurl:   { name: 'Incline Dumbbell Curl',   sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1,   needsWeight: true, video: 'https://youtu.be/DRQyu3BP410' },
+  stabilityBallCrunch:   { name: 'Stability-Ball Crunch', sets: 2, repMin: 12, repMax: 15, weight: 0, unit: 'kg', increment: 2.5, needsWeight: true, note: 'Bodyweight to start — add a plate once it’s easy.', video: 'https://youtu.be/Sb-aEfV-H1U' },
+  verticalGripMachineRow:{ name: 'Vertical-Grip Machine Row', sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/xktkLC5ImSg' },
 
-  legCurlMachine:        { name: 'Leg Curl',                sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
-  reverseLunge:          { name: 'Reverse Lunge',           sets: 3, repMin: 8, repMax: 10, weight: 14, unit: 'kg DBs', increment: 2, needsWeight: true },
-  backSquat:             { name: 'Back Squat',               sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
-  legPressCalfRaise:     { name: 'Leg-Press Calf Raise',    sets: 2, repMin: 12, repMax: 15, weight: 60, unit: 'kg', increment: 5, needsWeight: true },
-  hipThrust:             { name: 'Hip Thrust',               sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
-  legExtension:          { name: 'Leg Extension',           sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true },
-  forwardLunge:          { name: 'Forward Lunge',           sets: 3, repMin: 8, repMax: 10, weight: 14, unit: 'kg DBs', increment: 2, needsWeight: true },
-  dumbbellCalfRaise:     { name: 'Dumbbell Calf Raise',     sets: 2, repMin: 12, repMax: 15, weight: 16, unit: 'kg', increment: 2, needsWeight: true },
-  cyclistSquat:          { name: 'Cyclist Squat',            sets: 3, repMin: 8, repMax: 10, weight: 30, unit: 'kg', increment: 2.5, needsWeight: true },
+  legCurlMachine:        { name: 'Leg Curl',                sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/S0_Eo79xYCU' },
+  reverseLunge:          { name: 'Reverse Lunge',           sets: 3, repMin: 8, repMax: 10, weight: 14, unit: 'kg DBs', increment: 2, needsWeight: true, video: 'https://youtu.be/RmUYQwIs-0E' },
+  backSquat:             { name: 'Back Squat',               sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/ZZIxNBOlEVE' },
+  legPressCalfRaise:     { name: 'Leg-Press Calf Raise',    sets: 2, repMin: 12, repMax: 15, weight: 60, unit: 'kg', increment: 5, needsWeight: true, video: 'https://youtu.be/dqg0pOg9yLQ' },
+  hipThrust:             { name: 'Hip Thrust',               sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/SiaUXSGIA_A' },
+  legExtension:          { name: 'Leg Extension',           sets: 3, repMin: 8, repMax: 10, weight: 40, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/V43iC_11YiM' },
+  forwardLunge:          { name: 'Forward Lunge',           sets: 3, repMin: 8, repMax: 10, weight: 14, unit: 'kg DBs', increment: 2, needsWeight: true, video: 'https://youtu.be/h_ih-RgqRqg' },
+  dumbbellCalfRaise:     { name: 'Dumbbell Calf Raise',     sets: 2, repMin: 12, repMax: 15, weight: 16, unit: 'kg', increment: 2, needsWeight: true, video: 'https://youtu.be/8UgBU3eZ1nA' },
+  cyclistSquat:          { name: 'Cyclist Squat',            sets: 3, repMin: 8, repMax: 10, weight: 30, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/mSQVnaDqg5M' },
 
-  rowingMachine:         { name: 'Rowing Machine', sets: 1, repMin: 0, repMax: 0, weight: 10, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.' },
-  crossTrainer:          { name: 'Cross Trainer',  sets: 1, repMin: 0, repMax: 0, weight: 10, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.' },
-  inclineTreadmillWalk:  { name: 'Incline Treadmill Walk', sets: 1, repMin: 0, repMax: 0, weight: 12, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.' },
-  uprightBicycle:        { name: 'Upright Bicycle', sets: 1, repMin: 0, repMax: 0, weight: 12, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.' },
-  stepper:               { name: 'Stepper',         sets: 1, repMin: 0, repMax: 0, weight: 10, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.' },
-  inclineHammerCurl:     { name: 'Incline Hammer Curl', sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1, needsWeight: true },
-  dumbbellSupinationCurl:{ name: 'Dumbbell Supination Curl', sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1, needsWeight: true },
-  singleArmOverheadTricepsExtension: { name: 'Single-Arm Overhead Triceps Extension', sets: 3, repMin: 8, repMax: 10, weight: 8, unit: 'kg', increment: 1, needsWeight: true },
-  straightBarCurl:       { name: 'Straight-Bar Curl', sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 2.5, needsWeight: true },
-  overheadRopeExtension: { name: 'Overhead Rope Extension', sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 1, needsWeight: true },
+  rowingMachine:         { name: 'Rowing Machine', sets: 1, repMin: 0, repMax: 0, weight: 10, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.', video: 'https://youtu.be/nXjQVa1O2yE' },
+  crossTrainer:          { name: 'Cross Trainer',  sets: 1, repMin: 0, repMax: 0, weight: 10, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.', video: 'https://youtu.be/9VfNgAHtaaU' },
+  inclineTreadmillWalk:  { name: 'Incline Treadmill Walk', sets: 1, repMin: 0, repMax: 0, weight: 12, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.', video: 'https://youtu.be/BWh2DTfr1VE' },
+  uprightBicycle:        { name: 'Upright Bicycle', sets: 1, repMin: 0, repMax: 0, weight: 12, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.', video: 'https://youtu.be/z-MG7iaa6Ek' },
+  stepper:               { name: 'Stepper',         sets: 1, repMin: 0, repMax: 0, weight: 10, unit: 'min', increment: 1, noReps: true, needsWeight: true, note: 'Weight field tracks minutes.', video: 'https://youtu.be/VXKcUxMbrnQ' },
+  inclineHammerCurl:     { name: 'Incline Hammer Curl', sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1, needsWeight: true, video: 'https://youtu.be/DRQyu3BP410' },
+  dumbbellSupinationCurl:{ name: 'Dumbbell Supination Curl', sets: 3, repMin: 8, repMax: 10, weight: 10, unit: 'kg', increment: 1, needsWeight: true, video: 'https://youtu.be/GHx7so9DFlM' },
+  singleArmOverheadTricepsExtension: { name: 'Single-Arm Overhead Triceps Extension', sets: 3, repMin: 8, repMax: 10, weight: 8, unit: 'kg', increment: 1, needsWeight: true, video: 'https://youtu.be/8lTz_3I7boA' },
+  straightBarCurl:       { name: 'Straight-Bar Curl', sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 2.5, needsWeight: true, video: 'https://youtu.be/Qx7_xP6k3LI' },
+  overheadRopeExtension: { name: 'Overhead Rope Extension', sets: 3, repMin: 8, repMax: 10, weight: 25, unit: 'kg', increment: 1, needsWeight: true, video: 'https://youtu.be/SxOSviW-wJU' },
 };
 
 // Merged lookup table used everywhere an exercise id needs resolving,
@@ -268,8 +268,17 @@ function firstMondayDayOfMonth(year, month1based) {
 // crossed since the configured start month, modulo 4. This is computed
 // fresh on read, never recalculated for a day that's already been
 // completed (see daySnapshots) — history keeps the pack it was actually
-// done under.
+// done under, until it expires (see isSnapshotExpired).
 function resolveActivePack(now) {
+  const monthsElapsed = resolveMonthsElapsed(now);
+  const idx = ((monthsElapsed % 4) + 4) % 4;
+  return ROTATION_PACK_IDS[idx];
+}
+
+// Raw count of first-Monday boundaries crossed since the configured start
+// month — not wrapped to a pack index. Stamped onto a day snapshot when
+// it's completed, so later we can tell how many months have passed since.
+function resolveMonthsElapsed(now) {
   const { year, month, day } = getLondonDateParts(now || new Date());
   const firstMonday = firstMondayDayOfMonth(year, month);
   let effYear = year, effMonth = month;
@@ -277,9 +286,15 @@ function resolveActivePack(now) {
     effMonth -= 1;
     if (effMonth === 0) { effMonth = 12; effYear -= 1; }
   }
-  const monthsElapsed = (effYear - ROTATION_CONFIG.startYear) * 12 + (effMonth - ROTATION_CONFIG.startMonth);
-  const idx = ((monthsElapsed % 4) + 4) % 4;
-  return ROTATION_PACK_IDS[idx];
+  return (effYear - ROTATION_CONFIG.startYear) * 12 + (effMonth - ROTATION_CONFIG.startMonth);
+}
+
+// A frozen day snapshot expires once 2 months (2 first-Monday boundaries)
+// have passed since it was completed — after that it stops blocking
+// progression and the day goes back to tracking the live pack as if it
+// were never done, rather than sitting frozen on an old pack forever.
+function isSnapshotExpired(snap, currentMonthIndex) {
+  return !!snap && (currentMonthIndex - snap.monthIndex) >= 2;
 }
 
 function defaultRotationDaySnapshots() {
@@ -294,29 +309,45 @@ function defaultRotationMeta() {
 // day) for the rotation programme, so the rest of the app's render code
 // can treat classic and rotation identically. A day that's already been
 // completed keeps the exact pack/exercise list it was completed under,
-// even after the month rolls over to a new pack.
-function getRotationDaysForWeek(rotationMeta, activePackId, week) {
+// even after the month rolls over to a new pack — unless that snapshot
+// has expired (2+ months old), in which case it shows the live pack again.
+function getRotationDaysForWeek(rotationMeta, activePackId, week, currentMonthIndex) {
   const result = {};
   Object.keys(DAY_LABELS).forEach(d => {
     const snap = rotationMeta.daySnapshots[week][d];
-    const exercises = snap ? snap.exercises : ROTATION_PACKS[activePackId][week][d].exercises;
-    result[d] = { label: DAY_LABELS[d], exercises, packId: snap ? snap.packId : activePackId };
+    const liveSnap = snap && !isSnapshotExpired(snap, currentMonthIndex) ? snap : null;
+    const exercises = liveSnap ? liveSnap.exercises : ROTATION_PACKS[activePackId][week][d].exercises;
+    result[d] = { label: DAY_LABELS[d], exercises, packId: liveSnap ? liveSnap.packId : activePackId };
+  });
+  return result;
+}
+
+// A day only reads as green when it's both marked done AND its snapshot
+// hasn't expired — an expired day shows back as not-done, since it's now
+// displaying the live pack's (different) exercises, not what was logged.
+function getEffectiveRotationCompletedDays(rotationMeta, week, currentMonthIndex) {
+  const result = {};
+  Object.keys(DAY_LABELS).forEach(d => {
+    const snap = rotationMeta.daySnapshots[week][d];
+    result[d] = !!rotationMeta.completedDays[week][d] && !isSnapshotExpired(snap, currentMonthIndex);
   });
   return result;
 }
 
 // Rotation equivalent of updateMetaAfterAction. Locks in a snapshot (pack
-// id + exact exercise list) the moment a day first becomes complete, so a
-// later pack change never rewrites what that day actually was. If a
-// completed day is un-done again (e.g. an exercise un-skipped), the
-// snapshot is released so it goes back to tracking the live pack.
-function updateRotationMetaAfterAction(rotationMeta, week, dayNum, coveredIds, activePackId, dayExerciseIds) {
+// id + exact exercise list + the month it was done in) the moment a day
+// first becomes complete, so a later pack change never rewrites what that
+// day actually was. If a completed day is un-done again (e.g. an exercise
+// un-skipped) or its snapshot has expired, the snapshot is released so it
+// goes back to tracking the live pack.
+function updateRotationMetaAfterAction(rotationMeta, week, dayNum, coveredIds, activePackId, dayExerciseIds, currentMonthIndex) {
   const dayComplete = dayExerciseIds.every(exId => coveredIds.includes(exId));
   const completedDays = { ...rotationMeta.completedDays, [week]: { ...rotationMeta.completedDays[week], [dayNum]: dayComplete } };
   let daySnapshots = rotationMeta.daySnapshots;
   const existingSnap = daySnapshots[week][dayNum];
-  if (dayComplete && !existingSnap) {
-    daySnapshots = { ...daySnapshots, [week]: { ...daySnapshots[week], [dayNum]: { packId: activePackId, exercises: dayExerciseIds } } };
+  const existingIsLive = existingSnap && !isSnapshotExpired(existingSnap, currentMonthIndex);
+  if (dayComplete && !existingIsLive) {
+    daySnapshots = { ...daySnapshots, [week]: { ...daySnapshots[week], [dayNum]: { packId: activePackId, exercises: dayExerciseIds, monthIndex: currentMonthIndex } } };
   } else if (!dayComplete && existingSnap) {
     daySnapshots = { ...daySnapshots, [week]: { ...daySnapshots[week], [dayNum]: null } };
   }
@@ -519,6 +550,8 @@ Rotation also runs Week 1 and Week 2, each with Push / Pull / Legs / General Con
 
 A day you've already completed keeps the exact exercises it was done with, even after the pack changes later in the month — only days you haven't finished yet pick up the new pack. Nothing resets automatically; "Week Complete" works exactly as it does in Classic.
 
+If a completed day sits frozen on an old pack for 2 months without you ever finishing that week, it automatically expires: it goes back to showing as not-done, and picks up whichever pack is current. This stops a half-finished week from being stuck on ancient exercises indefinitely.
+
 Brand-new exercises in Rotation show a red "set your starting weight" notice until you edit their weight once with the ✏️ pencil — after that it logs normally. A handful of exercise names are intentionally shared with Classic (e.g. Leg Press, Preacher Curl) because they're the exact same movement — their weight carries over.`,
   },
   {
@@ -681,6 +714,15 @@ function ExerciseCard({ id, ex, data, onLog, onSaveNotes, onEditWeight, skipped,
               <span style={{ fontSize: 11, background: '#431407', color: '#fb923c', padding: '1px 6px', borderRadius: 4, border: '1px solid #7c2d12', flexShrink: 0 }}>
                 ⚠ elbow
               </span>
+            )}
+            {ex.video && (
+              <a
+                href={ex.video} target="_blank" rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                style={{ fontSize: 11, color: '#60a5fa', textDecoration: 'none', flexShrink: 0 }}
+              >
+                ▶ Watch
+              </a>
             )}
           </div>
           <div style={{ fontSize: 14, color: '#f5f5f4', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1007,7 +1049,7 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
     const coveredIds = [...nextLoggedIds, ...skippedIds];
     const metaKey = isRotation ? '__rotation' : '__meta';
     const nextMeta = isRotation
-      ? updateRotationMetaAfterAction(exData.__rotation, week, day, coveredIds, activePack, daysForWeek[day].exercises)
+      ? updateRotationMetaAfterAction(exData.__rotation, week, day, coveredIds, activePack, daysForWeek[day].exercises, currentMonthIndex)
       : updateMetaAfterAction(exData.__meta, week, day, coveredIds);
 
     persist({ ...exData, [id]: next, [metaKey]: nextMeta });
@@ -1030,7 +1072,7 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
     const coveredIds = [...loggedIds, ...nextSkippedIds];
     const metaKey = isRotation ? '__rotation' : '__meta';
     const nextMeta = isRotation
-      ? updateRotationMetaAfterAction(exData.__rotation, week, day, coveredIds, activePack, daysForWeek[day].exercises)
+      ? updateRotationMetaAfterAction(exData.__rotation, week, day, coveredIds, activePack, daysForWeek[day].exercises, currentMonthIndex)
       : updateMetaAfterAction(exData.__meta, week, day, coveredIds);
 
     persist({ ...exData, [metaKey]: nextMeta });
@@ -1103,11 +1145,13 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
   const programme = exData ? (exData.__programme || 'classic') : 'classic';
   const isRotation = programme === 'rotation';
   const activePack = resolveActivePack();
+  const currentMonthIndex = resolveMonthsElapsed();
   const activeMeta = exData && (isRotation ? exData.__rotation : exData.__meta);
   const week = activeMeta && activeMeta.week;
-  const daysForWeek = exData && (isRotation ? getRotationDaysForWeek(exData.__rotation, activePack, week) : WEEKS[week]);
+  const daysForWeek = exData && (isRotation ? getRotationDaysForWeek(exData.__rotation, activePack, week, currentMonthIndex) : WEEKS[week]);
+  const completedDaysForWeek = exData && (isRotation ? getEffectiveRotationCompletedDays(exData.__rotation, week, currentMonthIndex) : activeMeta.completedDays[week]);
   const allLogged = exData && daysForWeek[day].exercises.every(id => loggedIds.includes(id) || skippedIds.includes(id));
-  const weekAllComplete = exData && Object.keys(daysForWeek).every(d => activeMeta.completedDays[week][d]);
+  const weekAllComplete = exData && Object.keys(daysForWeek).every(d => completedDaysForWeek[d]);
 
   if (loadError) return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0c0a09', color: '#f5f5f4', fontFamily: 'system-ui', padding: 24, textAlign: 'center' }}>
@@ -1174,7 +1218,7 @@ function TrainingLog({ profileId, profileName, onSwitchProfile }) {
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
         {Object.keys(daysForWeek).map(d => {
           const isSelected = d === day;
-          const isComplete = activeMeta.completedDays[week][d];
+          const isComplete = completedDaysForWeek[d];
           const bg = isSelected ? '#c2410c' : isComplete ? '#166534' : '#1c1917';
           const borderColor = isSelected ? '#c2410c' : isComplete ? '#16a34a' : '#292524';
           const color = isSelected || isComplete ? '#fff' : '#78716c';
